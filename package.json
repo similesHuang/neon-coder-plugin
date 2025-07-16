@@ -1,10 +1,10 @@
 {
-  "name": "vscode-webview-react",
+  "name": "neon-coder-plugin",
   "version": "0.1.0",
   "engines": {
     "vscode": "^1.23.0"
   },
-  "publisher": "rebornix",
+  "publisher": "huanghe03",
   "activationEvents": [
     "*"
   ],

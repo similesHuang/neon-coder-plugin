@@ -66,7 +66,8 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
 			this._dispose();
 		});
 	}
-
+    
+	// 刷新页面
 	public refresh() {
 		if (this._view) {
 			this._view.webview.html = this._getHtmlForWebview(this._view.webview);
@@ -74,7 +75,7 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	private _dispose() {
-		// 清理热更新定时器
+		
 		if (this._updateInterval) {
 			clearInterval(this._updateInterval);
 		}
