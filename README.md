@@ -12,8 +12,8 @@ This project was bootstrapped with
 Run following commands in the terminal
 
 ```shell
-yarn install --ignore-engines
-yarn run build
+npm install 
+npm run build
 ```
 And then press F5, in Extension Development Host session, run `Start React Webview` command from command palette.
 
@@ -28,7 +28,3 @@ Things we did on top of Create React App TypeScript template
 * For all resources we are going to use in the webview, we change their schemes to `vscode-resource`
 * Since we only allow local resources, absolute path for styles/images (e.g., `/static/media/logo.svg`) will not work. We add a `.env` file which sets `PUBLIC_URL` to `./` and after bundling, resource urls will be relative.
 * We add baseUrl `<base href="${vscode.Uri.file(path.join(this._extensionPath, 'build')).with({ scheme: 'vscode-resource' })}/">` and then all relative paths work.
-
-## Limitations
-
-Right now you can only run production bits (`yarn run build`) in the webview, how to make dev bits work (webpack dev server) is still unknown yet. Suggestions and PRs welcome !
