@@ -12,7 +12,8 @@
             ],
             "stopOnEntry": false,
             "sourceMaps": true,
-            "outDir": "${workspaceRoot}/ext-src"
+            "outDir": "${workspaceRoot}/ext-src",
+            "preLaunchTask": "npm: build"
         }
     ]
 }
