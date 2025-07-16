@@ -1,0 +1,76 @@
+{
+  "name": "vscode-webview-react",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.23.0"
+  },
+  "publisher": "rebornix",
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./build/ext-src/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "react-webview.start",
+        "title": "Start React Webview",
+        "category": "React"
+      },
+      {
+        "command": "react-webview.refresh",
+        "title": "Refresh React View",
+        "icon": "$(refresh)"
+      }
+    ],
+    "views": {
+      "react-explorer": [
+        {
+          "type": "webview",
+          "id": "react-webview",
+          "name": "React App",
+          "when": "true"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "react-explorer",
+          "title": "React App",
+          "icon": "$(zap)"
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "terser": "^5.15.0"
+  },
+  "resolutions": {
+  },
+  "scripts": {
+    "vscode:prepublish": "node ./scripts/build-non-split.js && tsc -p tsconfig.extension.json",
+    "start": "react-scripts start",
+    "build": "node ./scripts/build-non-split.js && tsc -p tsconfig.extension.json",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject",
+    "compile": "tsc -p tsconfig.extension.json"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^18.15.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@types/vscode": "^1.23.0",
+    "react-scripts": "^5.0.1",
+    "rewire": "^6.0.0",
+    "typescript": "^4.9.5"
+  },
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not ie <= 11",
+    "not op_mini all"
+  ]
+}
