@@ -43,28 +43,45 @@
     }
   },
   "dependencies": {
+    "@koa/router": "^13.1.1",
+    "client-connect-server": "^3.0.1",
+    "dotenv": "^17.2.0",
+    "koa": "^3.0.0",
+    "koa-bodyparser": "^4.4.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.1",
     "terser": "^5.15.0"
   },
-  "resolutions": {
-  },
+  "resolutions": {},
   "scripts": {
     "vscode:prepublish": "node ./scripts/build-non-split.js && tsc -p tsconfig.extension.json",
     "start": "react-scripts start",
-    "build": "node ./scripts/build-non-split.js && tsc -p tsconfig.extension.json",
+    "build": "node ./scripts/build-non-split.js && tsc -p tsconfig.extension.json && npm run build:server",
     "test": "react-scripts test --env=jsdom",
+    "build:server": "tsc -p tsconfig.server.json",
+    "start:server": "NODE_ENV=development nodemon --watch server -e ts --exec \"ts-node -P tsconfig.server.json server/index.ts\"",
     "eject": "react-scripts eject",
     "compile": "tsc -p tsconfig.extension.json"
   },
   "devDependencies": {
     "@types/jest": "^29.5.0",
+    "@types/koa": "^2.15.0",
+    "@types/koa__router": "^12.0.4",
+    "@types/koa-bodyparser": "^4.3.12",
     "@types/node": "^18.15.0",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
     "@types/vscode": "^1.23.0",
+    "autoprefixer": "^10.4.21",
+    "concurrently": "^9.2.0",
+    "nodemon": "^2.0.22",
+    "postcss": "^8.5.6",
     "react-scripts": "^5.0.1",
     "rewire": "^6.0.0",
+    "ts-node": "^10.9.2",
     "typescript": "^4.9.5"
   },
   "browserslist": [
