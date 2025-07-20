@@ -5,11 +5,6 @@ import * as path from "path";
 import * as vscode from "vscode";
 
 export function activate(context: vscode.ExtensionContext) {
-  // 添加热重载支持
-  if (process.env.NODE_ENV === "development") {
-    const hotReload = require("vscode-hot-reload");
-    hotReload.watchExtension(context.extensionPath);
-  }
   // 注册 WebviewViewProvider
   console.log("Activating React Webview Extension...");
   const provider = new ReactViewProvider(context.extensionPath);
