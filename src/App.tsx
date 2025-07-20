@@ -1,21 +1,30 @@
-import * as React from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
+const App = () => {
+  const [message, setMessage] = useState("Loading...");
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // 直接使用固定地址
+        const response = await fetch("http://localhost:3002/api/hello");
 
-const App: React.FC = () => {
-  const vscode = window.acquireVsCodeApi
-    ? window.acquireVsCodeApi()
-    : undefined;
-  const sendTestMessage = () => {
-    if (vscode) {
-      vscode.postMessage({
-        command: "alert",
-        text: "这是一条测试消息！",
-      });
-    } else {
-      console.error("VS Code API not available");
-    }
-  };
-  return <div className="App">111</div>;
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setMessage(data.message);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setMessage(
+          `Error: ${error instanceof Error ? error.message : "Failed to fetch"}`
+        );
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  return <div className="App">{message}</div>;
 };
-
 export default App;

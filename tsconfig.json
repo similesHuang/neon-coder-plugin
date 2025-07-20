@@ -13,10 +13,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "preserve",
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "jsx": "preserve"
   },
-  "include": ["src", "utils/request", "uitils/request"]
+  "include": ["src", "utils/request", "utils/request"]
 }

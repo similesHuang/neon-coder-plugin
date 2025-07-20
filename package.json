@@ -43,9 +43,11 @@
     }
   },
   "dependencies": {
+    "@koa/cors": "^5.0.0",
     "@koa/router": "^13.1.1",
     "client-connect-server": "^3.0.1",
     "dotenv": "^17.2.0",
+    "get-port": "^7.1.0",
     "koa": "^3.0.0",
     "koa-bodyparser": "^4.4.1",
     "react": "^18.2.0",
@@ -69,6 +71,7 @@
   "devDependencies": {
     "@types/jest": "^29.5.0",
     "@types/koa": "^2.15.0",
+    "@types/koa__cors": "^5.0.0",
     "@types/koa__router": "^12.0.4",
     "@types/koa-bodyparser": "^4.3.12",
     "@types/node": "^18.15.0",

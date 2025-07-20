@@ -1,6 +1,6 @@
-import { Message } from "@/types/chat";
 import { useCallback, useRef, useState } from "react";
-import { streamRequest } from "../../uitils/request/streamRequest";
+import { streamRequest } from "../../utils/request/streamRequest";
+import { Message } from "../types/chat";
 
 interface ChatProps {
   api: string;
@@ -210,16 +210,19 @@ const useChat: (options: ChatProps) => UseChatReturn = (options) => {
   const reload = useCallback(async () => {
     if (messages.length === 0 || isLoading) return;
 
-    // const lastUserMessageIndex = messages?.findLastIndex(
-    //   (msg) => msg.role === "user"
-    // );
+    let lastUserMessageIndex = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "user") {
+        lastUserMessageIndex = i;
+        break;
+      }
+    }
+    if (lastUserMessageIndex === -1) return;
 
-    // if (lastUserMessageIndex === -1) return;
+    const messagesToReload = messages.slice(0, lastUserMessageIndex + 1);
+    setMessages(messagesToReload);
 
-    // const messagesToReload = messages.slice(0, lastUserMessageIndex + 1);
-    // setMessages(messagesToReload);
-
-    // await sendMessage(messagesToReload);
+    await sendMessage(messagesToReload);
   }, [messages, sendMessage, isLoading, isStreaming]);
 
   const stop = useCallback(() => {

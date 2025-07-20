@@ -1,12 +1,15 @@
-import { ChildProcess, spawn } from "child_process";
 import "dotenv/config";
 import * as fs from "fs";
+import getPort from "get-port";
 import * as path from "path";
 import * as vscode from "vscode";
+import { startServer } from "../server";
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   // 注册 WebviewViewProvider
   console.log("Activating React Webview Extension...");
+  const port = await startKoaServer(context);
+
   const provider = new ReactViewProvider(context.extensionPath);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("react-webview", provider)
@@ -34,12 +37,12 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
   private readonly _extensionPath: string;
   private _updateInterval: NodeJS.Timeout | undefined;
   private _buildTimeout: NodeJS.Timeout | undefined;
-  private _serverProcess: ChildProcess | undefined;
+
   constructor(extensionPath: string) {
     this._extensionPath = extensionPath;
   }
 
-  public resolveWebviewView(
+  public async resolveWebviewView(
     webviewView: vscode.WebviewView,
     context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
@@ -54,7 +57,6 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
     };
 
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-    this._createServer();
     // 启动热更新监听
     this._startHotReload();
 
@@ -86,11 +88,6 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
     }
     if (this._buildTimeout) {
       clearTimeout(this._buildTimeout);
-    }
-    if (this._serverProcess) {
-      this._serverProcess.kill();
-      this._serverProcess = undefined;
-      console.log("Server process terminated.");
     }
   }
 
@@ -319,65 +316,6 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
       </body></html>`;
     }
   }
-
-  // 创建服务器进程
-  private _createServer() {
-    const serverPath = path.join(
-      this._extensionPath,
-      "build",
-      "server",
-      "index.js"
-    );
-
-    console.log("[DEBUG] Server path:", serverPath);
-
-    if (!fs.existsSync(serverPath)) {
-      const msg = "Server 文件不存在，请先构建后端！";
-      console.error(msg);
-      return;
-    }
-
-    if (this._serverProcess) {
-      console.log("[DEBUG] Killing existing server process");
-      this._serverProcess.kill();
-    }
-
-    try {
-      console.log("[DEBUG] Starting server process");
-      this._serverProcess = spawn("node", [serverPath], {
-        cwd: this._extensionPath,
-        stdio: ["ignore", "pipe", "pipe"],
-        env: {
-          ...process.env,
-          PORT: process.env.PORT || "3002",
-          NODE_ENV: "development",
-        },
-      });
-
-      console.log("[DEBUG] Server process PID:", this._serverProcess?.pid);
-
-      this._serverProcess.stdout?.on("data", (data: Buffer) => {
-        const text = data.toString();
-        console.log("[Server stdout]", text);
-      });
-
-      this._serverProcess.stderr?.on("data", (data: Buffer) => {
-        const text = data.toString();
-        console.error("[Server stderr]", text);
-      });
-
-      this._serverProcess.on("error", (err) => {
-        console.error("[Server process error]", err);
-      });
-
-      this._serverProcess.on("exit", (code, signal) => {
-        console.log(`[Server process exited] Code: ${code}, Signal: ${signal}`);
-      });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error("[Server spawn error]", msg);
-    }
-  }
 }
 
 function getNonce() {
@@ -388,4 +326,27 @@ function getNonce() {
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
   return text;
+}
+
+async function startKoaServer(
+  context: vscode.ExtensionContext
+): Promise<number> {
+  try {
+    // 动态获取可用端口
+    const port = await getPort({ port: 3002 });
+    const server = startServer(port);
+    console.log(`Koa server started on port ${port}`);
+    // 确保插件停用时关闭服务器
+    context.subscriptions.push({
+      dispose: () => {
+        server.close();
+        console.log("Server stopped");
+      },
+    });
+
+    return port;
+  } catch (error) {
+    vscode.window.showErrorMessage(`Failed to start server: ${error}`);
+    throw error;
+  }
 }
