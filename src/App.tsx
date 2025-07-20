@@ -15,7 +15,7 @@ const App: React.FC = () => {
       console.error("VS Code API not available");
     }
   };
-  return <div className="App"></div>;
+  return <div className="App">111</div>;
 };
 
 export default App;
