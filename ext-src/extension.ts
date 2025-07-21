@@ -1,13 +1,18 @@
+import { config } from "dotenv";
 import "dotenv/config";
 import * as fs from "fs";
 import getPort from "get-port";
 import * as path from "path";
 import * as vscode from "vscode";
 import { startServer } from "../server";
-
+import httpRequest from "../utils/request";
+import { streamRequest } from "../utils/request/streamRequest";
+config(); // 确保环境变量被加载
 export async function activate(context: vscode.ExtensionContext) {
   // 注册 WebviewViewProvider
   console.log("Activating React Webview Extension...");
+
+  console.log("Environment variables loaded:", process.env.BASE_URL);
   const port = await startKoaServer(context);
 
   const provider = new ReactViewProvider(context.extensionPath);
@@ -57,15 +62,97 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
     };
 
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-    // 启动热更新监听
     this._startHotReload();
-
-    // Handle messages from the webview
-    webviewView.webview.onDidReceiveMessage((message) => {
+    webviewView.webview.onDidReceiveMessage(async (message) => {
       switch (message.command) {
-        case "alert":
-          vscode.window.showErrorMessage(message.text);
-          return;
+        case "request": {
+          try {
+            const {
+              api,
+              options,
+              method,
+            }: {
+              api: string;
+              method: "GET" | "POST" | "PUT" | "DELETE";
+              options: RequestInit;
+            } = message;
+            const res = await httpRequest?.[method?.toLocaleLowerCase()]?.(
+              api,
+              options
+            );
+            webviewView.webview.postMessage({
+              command: "response",
+              api: message.api,
+              response: res,
+            });
+          } catch (error) {
+            console.error("Error handling request:", error);
+            webviewView.webview.postMessage({
+              command: "error",
+              api: message.api,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+          break;
+        }
+
+        case "streamRequest": {
+          try {
+            const { api, options = {}, requestId } = message;
+            const abortController = new AbortController();
+
+            // 监听前端的 abortStream
+            const disposable = webviewView.webview.onDidReceiveMessage(
+              (msg) => {
+                if (
+                  msg.command === "abortStream" &&
+                  msg.requestId === requestId
+                ) {
+                  abortController.abort();
+                  disposable.dispose();
+                }
+              }
+            );
+
+            await streamRequest({
+              url: api,
+              body: options.body,
+              headers: options.headers,
+              signal: abortController.signal,
+              onChunk: (chunk, fullContent) => {
+                webviewView.webview.postMessage({
+                  command: "streamChunk",
+                  requestId,
+                  chunk,
+                  fullContent,
+                });
+              },
+              onComplete: (fullContent) => {
+                webviewView.webview.postMessage({
+                  command: "streamComplete",
+                  requestId,
+                  fullContent,
+                });
+              },
+              onError: (error) => {
+                webviewView.webview.postMessage({
+                  command: "streamError",
+                  requestId,
+                  error: error.message || String(error),
+                });
+              },
+            });
+          } catch (error) {
+            webviewView.webview.postMessage({
+              command: "streamError",
+              requestId: message.requestId,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+          break;
+        }
+        default:
+          break;
       }
     });
 

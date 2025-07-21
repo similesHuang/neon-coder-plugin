@@ -1,28 +1,13 @@
 import { useEffect, useState } from "react";
 import "./App.css";
+import { callApi } from "./hooks/useApi";
 const App = () => {
   const [message, setMessage] = useState("Loading...");
+  console.log("App component rendered");
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // 直接使用固定地址
-        const response = await fetch("http://localhost:3002/api/hello");
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        setMessage(data.message);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        setMessage(
-          `Error: ${error instanceof Error ? error.message : "Failed to fetch"}`
-        );
-      }
-    };
-
-    fetchData();
+    callApi("/api/hello", "GET").then((res) => {
+      setMessage(JSON.stringify(res?.data));
+    });
   }, []);
 
   return <div className="App">{message}</div>;

@@ -8,6 +8,15 @@ type RequestOptions = RequestInit & {
   interceptResponse?: (response: Response) => Promise<Response> | Response;
 };
 
+interface HttpRequest {
+  <T = any>(url: string, options?: RequestOptions): Promise<T>;
+  get: <T = any>(url: string, options?: RequestOptions) => Promise<T>;
+  post: <T = any>(url: string, options?: RequestOptions) => Promise<T>;
+  put: <T = any>(url: string, options?: RequestOptions) => Promise<T>;
+  delete: <T = any>(url: string, options?: RequestOptions) => Promise<T>;
+  [key: string]: any;
+}
+
 const defaultRequestInterceptor: (
   url: string,
   options: RequestInit
@@ -18,15 +27,35 @@ const defaultRequestInterceptor: (
 
 const defaultResponseInterceptor = async (response: Response) => response;
 
-async function httpRequest<T = any>(
+const httpRequest = async function httpRequest<T = any>(
   url: string,
   options: RequestOptions = {}
 ): Promise<T> {
   const {
     interceptRequest = defaultRequestInterceptor,
     interceptResponse = defaultResponseInterceptor,
-    ...fetchOptions
+    body,
+    ...restOptions
   } = options;
+
+  const fetchOptions: RequestInit = { ...restOptions };
+
+  // 处理 body，自动序列化为 JSON 字符串（仅 POST/PUT/PATCH）
+  let finalBody = body;
+  const method = (fetchOptions.method || "GET").toUpperCase();
+  if (
+    finalBody !== undefined &&
+    ["POST", "PUT", "PATCH"].includes(method) &&
+    typeof finalBody !== "string"
+  ) {
+    fetchOptions.body = JSON.stringify(finalBody);
+    fetchOptions.headers = {
+      "Content-Type": "application/json",
+      ...(fetchOptions.headers || {}),
+    };
+  } else if (finalBody !== undefined) {
+    fetchOptions.body = finalBody;
+  }
 
   const [finalUrl, finalOptions] = await interceptRequest(url, fetchOptions);
 
@@ -39,40 +68,16 @@ async function httpRequest<T = any>(
     return finalResponse.json();
   }
   return finalResponse as any;
-}
+} as HttpRequest;
 
 httpRequest.get = <T = any>(url: string, options: RequestOptions = {}) =>
   httpRequest<T>(url, { ...options, method: "GET" });
 
-httpRequest.post = <T = any>(
-  url: string,
-  body?: any,
-  options: RequestOptions = {}
-) =>
-  httpRequest<T>(url, {
-    ...options,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+httpRequest.post = <T = any>(url: string, options: RequestOptions = {}) =>
+  httpRequest<T>(url, { ...options, method: "POST" });
 
-httpRequest.put = <T = any>(
-  url: string,
-  body?: any,
-  options: RequestOptions = {}
-) =>
-  httpRequest<T>(url, {
-    ...options,
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+httpRequest.put = <T = any>(url: string, options: RequestOptions = {}) =>
+  httpRequest<T>(url, { ...options, method: "PUT" });
 
 httpRequest.delete = <T = any>(url: string, options: RequestOptions = {}) =>
   httpRequest<T>(url, { ...options, method: "DELETE" });

@@ -20,9 +20,10 @@ export const streamRequest = async ({
   signal,
 }: StreamRequestOptions) => {
   try {
-    const response = await httpRequest.post(url, body, {
+    const response = await httpRequest.post(url, {
       headers: headers,
       signal,
+      body,
     });
     const reader = response.body?.getReader();
     if (!reader) {
