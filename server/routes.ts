@@ -5,9 +5,10 @@ import { ChatBody } from "./types";
 import { successResponse } from "./utils/response";
 
 export const openai = new OpenAI({
-  apiKey: process.env.DASHSCOPE_API_KEY,
-  baseURL: process.env.BASE_URL,
+  apiKey: "sk-0e9f5d876e84440391946b238a5b22d4",
+  baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
 });
+
 const router = new Router();
 
 // 示例 GET 接口
@@ -20,8 +21,9 @@ router.get("/api/hello", (ctx: Context) => {
 });
 
 // 调用大模型接口
-router.post("api/llm/chat", (ctx: Context) => {
+router.post("/api/llm/chat", (ctx: Context) => {
   const { messages } = ctx?.request.body as ChatBody;
+  console.log("Received messages:", messages);
   ctx.set("Content-Type", "text/plain; charset=utf-8");
   ctx.set("Cache-Control", "no-cache");
   ctx.set("X-Accel-Buffering", "no");

@@ -10,6 +10,21 @@
   ],
   "main": "./build/ext-src/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "",
+      "properties": {
+        "neonCoder.aliyun_base_url": {
+          "type": "string",
+          "default": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+          "description": "阿里云endpoint地址，默认值为 https://dashscope.aliyuncs.com/compatible-mode/v1"
+        },
+        "neonCoder.aliyun_api_key": {
+          "type": "string",
+          "default": "sk-0e9f5d876e84440391946b238a5b22d4",
+          "description": "阿里云网关"
+        }
+      }
+    },
     "commands": [
       {
         "command": "react-webview.start",
@@ -27,8 +42,7 @@
         {
           "type": "webview",
           "id": "react-webview",
-          "name": "Neon Coder",
-          "when": "true"
+          "name": "Neon Coder"
         }
       ]
     },

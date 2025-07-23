@@ -1,15 +1,10 @@
-import { useEffect, useState } from "react";
 import "./App.css";
-import { callApi } from "./hooks/useApi";
+import NeonChat from "./componnents/neonChat";
 const App = () => {
-  const [message, setMessage] = useState("Loading...");
-  console.log("App component rendered");
-  useEffect(() => {
-    callApi("/api/hello", "GET").then((res) => {
-      setMessage(JSON.stringify(res?.data));
-    });
-  }, []);
-
-  return <div className="App">{message}</div>;
+  return (
+    <div className="App">
+      <NeonChat></NeonChat>
+    </div>
+  );
 };
 export default App;

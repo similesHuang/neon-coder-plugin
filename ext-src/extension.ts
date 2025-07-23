@@ -1,5 +1,3 @@
-import { config } from "dotenv";
-import "dotenv/config";
 import * as fs from "fs";
 import getPort from "get-port";
 import * as path from "path";
@@ -7,12 +5,12 @@ import * as vscode from "vscode";
 import { startServer } from "../server";
 import httpRequest from "../utils/request";
 import { streamRequest } from "../utils/request/streamRequest";
-config(); // 确保环境变量被加载
+
 export async function activate(context: vscode.ExtensionContext) {
   // 注册 WebviewViewProvider
+
   console.log("Activating React Webview Extension...");
 
-  console.log("Environment variables loaded:", process.env.BASE_URL);
   const port = await startKoaServer(context);
 
   const provider = new ReactViewProvider(context.extensionPath);
@@ -100,7 +98,6 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
           try {
             const { api, options = {}, requestId } = message;
             const abortController = new AbortController();
-
             // 监听前端的 abortStream
             const disposable = webviewView.webview.onDidReceiveMessage(
               (msg) => {

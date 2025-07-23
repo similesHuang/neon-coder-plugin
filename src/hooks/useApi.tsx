@@ -50,20 +50,21 @@ export const callApi = (
 
 export const callStreamApi = (
   api: string,
-  options?: RequestInit & {
-    onChunk?: (chunk: string, fullContent: string) => void;
-  }
+  options?: RequestInit,
+  onChunk?: (chunk: string, fullContent: string) => void,
+  onComplete?: (fullContent: string) => void,
+  onError?: (error: Error) => void
 ) => {
   let aborted = false;
   let fullContent = "";
-
+  console.log("Calling stream API:", api, options);
   if (!vs) throw new Error("VS Code API is not available");
 
   const requestId = Math.random().toString(36).slice(2);
 
   vs.postMessage({
     command: "streamRequest",
-    api,
+    api: `${baseUrl}${api}`,
     options: {
       ...options,
       signal: undefined,
@@ -82,7 +83,7 @@ export const callStreamApi = (
       if (!msg || msg.requestId !== requestId) return;
       if (msg.command === "streamChunk") {
         fullContent += msg.chunk;
-        options?.onChunk?.(msg.chunk, fullContent);
+        onChunk?.(msg.chunk, fullContent);
       }
       if (msg.command === "streamComplete") {
         window.removeEventListener("message", messageListener);
