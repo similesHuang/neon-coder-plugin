@@ -6,11 +6,12 @@
 const rewire = require("rewire");
 const defaults = rewire("react-scripts/scripts/build.js");
 let config = defaults.__get__("config");
-
+config.devtool = "inline-source-map";
 config.optimization.splitChunks = {
   cacheGroups: {
-    default: false
-  }
+    default: false,
+  },
 };
 
 config.optimization.runtimeChunk = false;
+config.output.publicPath = "./"; // 确保资源引用相对路径

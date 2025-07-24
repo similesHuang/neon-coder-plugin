@@ -45,7 +45,6 @@ const useChat = (options: ChatProps): UseChatReturn => {
   const [error, setError] = useState<Error | null>(null);
 
   const abortControllerRef = useRef<{ abort: () => void } | null>(null);
-  const streamRef = useRef<{ fullContent: string }>({ fullContent: "" });
 
   const generateId = () =>
     Date.now().toString() + Math.random().toString(36).slice(2, 9);
@@ -60,9 +59,8 @@ const useChat = (options: ChatProps): UseChatReturn => {
   const sendMessage = useCallback(
     async (messagesToSend: Message[]) => {
       setIsLoading(true);
-      setIsStreaming(false);
+      setIsStreaming(true);
       setError(null);
-      streamRef.current.fullContent = "";
 
       const assistantMessage: Message = {
         id: generateId(),
@@ -88,17 +86,11 @@ const useChat = (options: ChatProps): UseChatReturn => {
             }),
           },
           (chunk: string, fullContent: string) => {
-            streamRef.current.fullContent = fullContent;
-
-            if (!isStreaming) {
-              setIsStreaming(true);
-              setIsLoading(false);
-            }
-
+            console.log("Received chunk:", chunk);
             setMessages((prev) =>
               prev.map((msg) =>
                 msg.id === assistantMessage.id
-                  ? { ...msg, content: fullContent }
+                  ? { ...msg, content: msg.content + chunk }
                   : msg
               )
             );
@@ -106,7 +98,6 @@ const useChat = (options: ChatProps): UseChatReturn => {
           (fullContent: string) => {
             setIsStreaming(false);
             setIsLoading(false);
-
             const finalMessage = {
               ...assistantMessage,
               content: fullContent,
@@ -117,46 +108,32 @@ const useChat = (options: ChatProps): UseChatReturn => {
                 msg.id === assistantMessage.id ? finalMessage : msg
               )
             );
-
             onFinish?.(finalMessage);
           },
           (error: Error) => {
+            setIsStreaming(false);
+            setIsLoading(false);
+
             if (error.message === "Aborted") {
+              // 停止时保留已接收的内容
               return;
             }
 
-            setIsStreaming(false);
-            setIsLoading(false);
             setError(error);
             onError?.(error);
-
-            setMessages((prev) =>
-              prev.filter((msg) => msg.id !== assistantMessage.id)
-            );
           }
         );
 
         abortControllerRef.current = { abort };
         await promise;
-
-        if (onResponse) {
-          // Create a mock Response object if needed
-          const response = new Response(
-            JSON.stringify({
-              content: streamRef.current.fullContent,
-            })
-          );
-          onResponse(response);
-        }
       } catch (err) {
         const error = err as Error;
-
-        if (error.message !== "Aborted") {
+        console.error("Error in sendMessage:", error);
+        if (error.message !== "This operation was aborted") {
           setIsStreaming(false);
           setIsLoading(false);
           setError(error);
           onError?.(error);
-
           setMessages((prev) =>
             prev.filter((msg) => msg.id !== assistantMessage.id)
           );

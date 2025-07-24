@@ -6,7 +6,7 @@ import useChat from "../../hooks/useChat";
 import type { Message } from "../../types/chat";
 import "./index.css";
 
-const EXAMPLE_PROMPTS = ["基础架构前端应用"];
+const EXAMPLE_PROMPTS = ["mcp工具调用"];
 
 const NeonChat: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -49,10 +49,6 @@ const NeonChat: React.FC = () => {
       <div className="chat-messages" ref={scrollRef}>
         {!chatStarted && (
           <div className="welcome-screen">
-            <h1 className="welcome-title">Neon Coder</h1>
-            <p className="welcome-subtitle">
-              让你的想法闪耀，AI 编程助手为你服务。
-            </p>
             <div className="example-prompts">
               {EXAMPLE_PROMPTS.map((prompt, idx) => (
                 <button

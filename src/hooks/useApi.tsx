@@ -87,10 +87,12 @@ export const callStreamApi = (
       }
       if (msg.command === "streamComplete") {
         window.removeEventListener("message", messageListener);
+        onComplete?.(fullContent);
         resolve(fullContent);
       }
       if (msg.command === "streamError") {
         window.removeEventListener("message", messageListener);
+        onError?.(new Error(msg.error));
         reject(new Error(msg.error));
       }
       if (msg.command === "streamAbort") {

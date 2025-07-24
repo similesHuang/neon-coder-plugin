@@ -65,7 +65,7 @@ const httpRequest = async function httpRequest<T = any>(
 
   // 统一处理 JSON 响应
   if (finalResponse.headers.get("content-type")?.includes("application/json")) {
-    return finalResponse.json();
+    return finalResponse.json() as Promise<T>;
   }
   return finalResponse as any;
 } as HttpRequest;
