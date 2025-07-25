@@ -57,7 +57,7 @@
         {
           "type": "webview",
           "id": "neon-coder-chat",
-          "name": "Neon Coder Chat"
+          "name": "Neon"
         }
       ]
     },
@@ -84,7 +84,7 @@
       "activitybar": [
         {
           "id": "neon-coder",
-          "title": "Neon Coder",
+          "title": "Neon",
           "icon": "$(zap)"
         }
       ]

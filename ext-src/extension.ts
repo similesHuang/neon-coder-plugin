@@ -24,9 +24,34 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // 注册刷新命令
   context.subscriptions.push(
     vscode.commands.registerCommand("neon-coder.refresh", () => {
       provider.refresh();
+    })
+  );
+
+  // 新增：新建会话命令
+  context.subscriptions.push(
+    vscode.commands.registerCommand("neon-coder.newSession", () => {
+      console.log("创建新会话");
+      provider.createNewSession();
+    })
+  );
+
+  // 新增：显示历史会话命令
+  context.subscriptions.push(
+    vscode.commands.registerCommand("neon-coder.showHistory", () => {
+      console.log("显示历史会话");
+      provider.showSessionHistory();
+    })
+  );
+
+  // 新增：关闭插件命令
+  context.subscriptions.push(
+    vscode.commands.registerCommand("neon-coder.close", () => {
+      console.log("关闭插件");
+      provider.closePlugin();
     })
   );
 }
@@ -316,6 +341,30 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
         <p>Check the VS Code developer console for more details.</p>
       </body></html>`;
     }
+  }
+  public createNewSession() {
+    if (this._view) {
+      this._view.webview.postMessage({
+        command: "createNewSessionFromToolbar",
+        timestamp: Date.now(),
+      });
+
+      vscode.window.showInformationMessage("✨ 正在创建新会话...");
+    }
+  }
+
+  public showSessionHistory() {
+    if (this._view) {
+      this._view.webview.postMessage({
+        command: "showSessionHistory",
+        timestamp: Date.now(),
+      });
+    }
+  }
+
+  // 新增：关闭插件方法
+  public closePlugin() {
+    vscode.commands.executeCommand("workbench.action.closeSidebar");
   }
 }
 
