@@ -3,8 +3,7 @@ import getPort from "get-port";
 import * as path from "path";
 import * as vscode from "vscode";
 import { startServer } from "../server";
-import httpRequest from "../utils/request";
-import { streamRequest } from "../utils/request/streamRequest";
+import { setupMessageChannel } from "./messagChannel";
 
 export async function activate(context: vscode.ExtensionContext) {
   // 注册 WebviewViewProvider
@@ -13,20 +12,20 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const port = await startKoaServer(context);
 
-  const provider = new ReactViewProvider(context.extensionPath);
+  const provider = new ReactViewProvider(context);
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider("react-webview", provider)
+    vscode.window.registerWebviewViewProvider("neon-coder-chat", provider)
   );
 
   // 注册命令
   context.subscriptions.push(
-    vscode.commands.registerCommand("react-webview.start", () => {
-      vscode.commands.executeCommand("react-explorer.focus");
+    vscode.commands.registerCommand("neon-coder.start", () => {
+      vscode.commands.executeCommand("workbench.view.extension.neon-coder");
     })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("react-webview.refresh", () => {
+    vscode.commands.registerCommand("neon-coder.refresh", () => {
       provider.refresh();
     })
   );
@@ -37,12 +36,11 @@ export async function activate(context: vscode.ExtensionContext) {
  */
 class ReactViewProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
-  private readonly _extensionPath: string;
   private _updateInterval: NodeJS.Timeout | undefined;
   private _buildTimeout: NodeJS.Timeout | undefined;
-
-  constructor(extensionPath: string) {
-    this._extensionPath = extensionPath;
+  private _context: vscode.ExtensionContext;
+  constructor(context: vscode.ExtensionContext) {
+    this._context = context;
   }
 
   public async resolveWebviewView(
@@ -55,105 +53,24 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [
-        vscode.Uri.file(path.join(this._extensionPath, "build")),
+        vscode.Uri.file(path.join(this._context.extensionPath, "build")),
       ],
     };
 
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
     this._startHotReload();
-    webviewView.webview.onDidReceiveMessage(async (message) => {
-      switch (message.command) {
-        case "request": {
-          try {
-            const {
-              api,
-              options,
-              method,
-            }: {
-              api: string;
-              method: "GET" | "POST" | "PUT" | "DELETE";
-              options: RequestInit;
-            } = message;
-            const res = await httpRequest?.[method?.toLocaleLowerCase()]?.(
-              api,
-              options
-            );
-            webviewView.webview.postMessage({
-              command: "response",
-              api: message.api,
-              response: res,
-            });
-          } catch (error) {
-            console.error("Error handling request:", error);
-            webviewView.webview.postMessage({
-              command: "error",
-              api: message.api,
-              error: error instanceof Error ? error.message : String(error),
-            });
-          }
-          break;
-        }
 
-        case "streamRequest": {
-          try {
-            const { api, options = {}, requestId } = message;
-            const abortController = new AbortController();
-            // 监听前端的 abortStream
-            const disposable = webviewView.webview.onDidReceiveMessage(
-              (msg) => {
-                if (
-                  msg.command === "abortStream" &&
-                  msg.requestId === requestId
-                ) {
-                  abortController.abort();
-                  disposable.dispose();
-                }
-              }
-            );
+    // 设置消息通道
+    setupMessageChannel(webviewView, this._context);
 
-            await streamRequest({
-              url: api,
-              body: options.body,
-              headers: options.headers,
-              signal: abortController.signal,
-              onChunk: (chunk, fullContent) => {
-                webviewView.webview.postMessage({
-                  command: "streamChunk",
-                  requestId,
-                  chunk,
-                  fullContent,
-                });
-              },
-              onComplete: (fullContent) => {
-                webviewView.webview.postMessage({
-                  command: "streamComplete",
-                  requestId,
-                  fullContent,
-                });
-              },
-              onError: (error) => {
-                webviewView.webview.postMessage({
-                  command: "streamError",
-                  requestId,
-                  error: error.message || String(error),
-                });
-              },
-            });
-          } catch (error) {
-            webviewView.webview.postMessage({
-              command: "streamError",
-              requestId: message.requestId,
-              error: error instanceof Error ? error.message : String(error),
-            });
-          }
-          break;
-        }
-        default:
-          break;
-      }
-    });
+    // 等待 webview 准备就绪后发送初始化消息
+    setTimeout(() => {
+      webviewView.webview.postMessage({
+        command: "webviewReady",
+        timestamp: Date.now(),
+      });
+    }, 500);
 
-    // Clean up when the view is disposed
     webviewView.onDidDispose(() => {
       this._dispose();
     });
@@ -180,7 +97,7 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
     let lastModifiedTimes = new Map<string, number>();
 
     // 初始化文件时间戳
-    const srcDir = path.join(this._extensionPath, "src");
+    const srcDir = path.join(this._context.extensionPath, "src");
     if (fs.existsSync(srcDir)) {
       const files = this._getAllFiles(srcDir, [".tsx", ".ts", ".css", ".js"]);
       for (const file of files) {
@@ -281,7 +198,7 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
 
       exec(
         "npm run build",
-        { cwd: this._extensionPath },
+        { cwd: this._context.extensionPath },
         (error: any, stdout: any, stderr: any) => {
           if (error) {
             console.error("Build error:", error);
@@ -310,7 +227,7 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
   private _getHtmlForWebview(webview: vscode.Webview) {
     try {
       const manifestPath = path.join(
-        this._extensionPath,
+        this._context.extensionPath,
         "build",
         "asset-manifest.json"
       );
@@ -338,11 +255,11 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
       }
 
       const scriptPathOnDisk = vscode.Uri.file(
-        path.join(this._extensionPath, "build", mainScript)
+        path.join(this._context.extensionPath, "build", mainScript)
       );
       const scriptUri = webview.asWebviewUri(scriptPathOnDisk);
       const stylePathOnDisk = vscode.Uri.file(
-        path.join(this._extensionPath, "build", mainStyle)
+        path.join(this._context.extensionPath, "build", mainStyle)
       );
       const styleUri = webview.asWebviewUri(stylePathOnDisk);
 
@@ -363,7 +280,7 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
         webview.cspSource
       } 'unsafe-inline' http: https: data:;">
           <base href="${webview.asWebviewUri(
-            vscode.Uri.file(path.join(this._extensionPath, "build"))
+            vscode.Uri.file(path.join(this._context.extensionPath, "build"))
           )}/">
           <style>
             body {

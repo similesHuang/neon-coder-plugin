@@ -1,10 +1,11 @@
 import "./App.css";
 import NeonChat from "./componnents/neonChat";
+import Session from "./componnents/session";
 const App = () => {
-  console.log("App component rendered");
   return (
     <div className="App">
       <NeonChat></NeonChat>
+      <Session></Session>
     </div>
   );
 };

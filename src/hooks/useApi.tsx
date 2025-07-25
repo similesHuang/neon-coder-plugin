@@ -1,4 +1,6 @@
-const vs = window?.acquireVsCodeApi?.();
+import getVSCodeInstance from "./useVscode";
+
+const vs = getVSCodeInstance();
 const baseUrl = "http://localhost:3002";
 export const callApi = (
   api: string,

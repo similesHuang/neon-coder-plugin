@@ -27,29 +27,63 @@
     },
     "commands": [
       {
-        "command": "react-webview.start",
-        "title": "Start React Webview",
+        "command": "neon-coder.start",
+        "title": "Neon Coder Start",
         "category": "React"
       },
       {
-        "command": "react-webview.refresh",
-        "title": "Refresh React View",
+        "command": "neon-coder.refresh",
+        "title": "Neon Coder Refresh",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "neon-coder.newSession",
+        "title": "新建会话",
+        "icon": "$(add)"
+      },
+      {
+        "command": "neon-coder.showHistory",
+        "title": "历史会话",
+        "icon": "$(history)"
+      },
+      {
+        "command": "neon-coder.close",
+        "title": "关闭插件",
+        "icon": "$(close)"
       }
     ],
     "views": {
-      "react-explorer": [
+      "neon-coder": [
         {
           "type": "webview",
-          "id": "react-webview",
-          "name": "Neon Coder"
+          "id": "neon-coder-chat",
+          "name": "Neon Coder Chat"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "neon-coder.newSession",
+          "when": "view == neon-coder-chat",
+          "group": "navigation@1"
+        },
+        {
+          "command": "neon-coder.showHistory",
+          "when": "view == neon-coder-chat",
+          "group": "navigation@2"
+        },
+        {
+          "command": "neon-coder.close",
+          "when": "view == neon-coder-chat",
+          "group": "navigation@3"
         }
       ]
     },
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "react-explorer",
+          "id": "neon-coder",
           "title": "Neon Coder",
           "icon": "$(zap)"
         }

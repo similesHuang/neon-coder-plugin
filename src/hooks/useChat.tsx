@@ -115,7 +115,6 @@ const useChat = (options: ChatProps): UseChatReturn => {
             setIsLoading(false);
 
             if (error.message === "Aborted") {
-              // 停止时保留已接收的内容
               return;
             }
 

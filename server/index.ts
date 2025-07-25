@@ -8,7 +8,7 @@ export const startServer = (port: number = 3002) => {
   if (process.env.NODE_ENV === "development") {
     app.use(
       cors({
-        origin: "http://localhost:3000", // 允许 CRA 前端访问
+        origin: "http://localhost:3000",
       })
     );
   }
