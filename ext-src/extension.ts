@@ -42,8 +42,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // 新增：显示历史会话命令
   context.subscriptions.push(
     vscode.commands.registerCommand("neon-coder.showHistory", () => {
-      console.log("显示历史会话");
-      provider.showSessionHistory();
+      provider.toggleSessionHistory();
     })
   );
 
@@ -353,10 +352,10 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  public showSessionHistory() {
+  public toggleSessionHistory() {
     if (this._view) {
       this._view.webview.postMessage({
-        command: "showSessionHistory",
+        command: "toggleSessionHistory",
         timestamp: Date.now(),
       });
     }

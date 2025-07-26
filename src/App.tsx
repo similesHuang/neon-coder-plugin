@@ -1,11 +1,11 @@
 import "./App.css";
 import NeonChat from "./componnents/neonChat";
-import Session from "./componnents/session";
+import SessionHistory from "./componnents/sessionHistory";
 const App = () => {
   return (
     <div className="App">
       <NeonChat></NeonChat>
-      <Session></Session>
+      <SessionHistory></SessionHistory>
     </div>
   );
 };
