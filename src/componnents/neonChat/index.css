@@ -103,126 +103,98 @@
   }
 }
 
-/* Input area */
 .chat-input-container {
   position: sticky;
   bottom: 0;
   width: 100%;
-  background-color: var(--bg-primary);
-  padding: 16px;
+  background-color: var(--vscode-input-background);
+  border-top: 1px solid var(--vscode-panel-border);
+  padding: 12px 16px;
   box-sizing: border-box;
 }
 
 .input-wrapper {
   position: relative;
   width: 100%;
+  background-color: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 8px;
+  transition: border-color 0.2s ease;
 }
 
 .chat-textarea {
   width: 100%;
   resize: none;
-  border-radius: 0.5rem;
-  border: 1px solid var(--border-color);
-  background-color: var(--bg-primary);
-  padding: 12px 48px 12px 12px;
-  color: var(--text-primary);
+  border: none;
+  border-radius: 8px;
+  background-color: transparent;
+  padding: 12px 48px 12px 16px;
+  color: var(--vscode-input-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  line-height: 1.4;
   outline: none;
-  min-height: 60px;
+  min-height: 44px;
   max-height: 120px;
   box-sizing: border-box;
 }
 
-.chat-textarea:focus {
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+.chat-textarea::placeholder {
+  color: var(--vscode-input-placeholderForeground);
 }
 
 .input-buttons {
   position: absolute;
-  bottom: 12px;
-  right: 12px;
+  bottom: 8px;
+  right: 8px;
   display: flex;
-  gap: 0.5rem;
+  gap: 4px;
+  align-items: center;
 }
 
 .stop-button,
 .send-button {
   padding: 8px;
-  border-radius: 50%;
+  border-radius: 6px;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
+  background-color: transparent;
 }
 
 .stop-button {
-  background-color: #ef4444;
-  color: white;
+  color: var(--vscode-errorForeground);
+  background-color: var(--vscode-inputValidation-errorBackground);
 }
 
 .stop-button:hover {
-  background-color: #dc2626;
+  background-color: var(--vscode-errorForeground);
+  color: var(--vscode-errorBackground);
 }
 
 .send-button {
-  background-color: var(--bg-tertiary);
-  color: var(--text-secondary);
+  color: var(--vscode-descriptionForeground);
+  background-color: transparent;
 }
 
 .send-button.active {
-  background-color: #3b82f6;
-  color: white;
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
 }
 
 .send-button.active:hover {
-  background-color: #2563eb;
+  background-color: var(--vscode-button-hoverBackground);
 }
 
 .send-button.disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .button-icon {
-  width: 20px;
-  height: 20px;
-}
-
-/* Dark mode variables */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text-primary: #f3f4f6;
-    --text-secondary: #9ca3af;
-    --bg-primary: #1f2937;
-    --bg-secondary: #111827;
-    --bg-tertiary: #1e40af;
-    --border-color: #4b5563;
-    --accent-color: #3b82f6;
-  }
-
-  .user-message-content {
-    background-color: #374151;
-  }
-
-  .example-prompt-button {
-    background-color: #1f2937;
-  }
-
-  .example-prompt-button:hover {
-    background-color: #1e40af;
-  }
-}
-
-/* Light mode variables */
-@media (prefers-color-scheme: light) {
-  :root {
-    --text-primary: #111827;
-    --text-secondary: #6b7280;
-    --bg-primary: #ffffff;
-    --bg-secondary: #f3f4f6;
-    --bg-tertiary: #eff6ff;
-    --border-color: #d1d5db;
-    --accent-color: #3b82f6;
-  }
+  width: 18px;
+  height: 18px;
 }
