@@ -33,16 +33,18 @@ export function setupMessageChannel(
 
       case "createNewSession": {
         try {
-          const newSession = await storageManager.createSession(message.title);
+          const title = message.title || "新对话";
+          console.log("Creating new session with title:", title);
 
-          // 获取完整的会话状态
-          const chatStore = await storageManager.getChatStore();
+          const newSession = await storageManager.createNewSession(title);
+          await storageManager.setCurrentSessionId(newSession.id);
 
           webviewView.webview.postMessage({
             command: "sessionCreated",
             session: newSession,
-            chatStore, // 返回完整状态
           });
+
+          console.log("New session created:", newSession.id);
         } catch (error) {
           console.error("Error creating new session:", error);
         }

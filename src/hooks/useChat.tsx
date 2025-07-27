@@ -28,6 +28,7 @@ interface UseChatReturn {
   reload: () => void;
   stop: () => void;
   setMessages: (messages: Message[]) => void;
+  createNewSession: () => void;
 }
 const vs = getVSCodeInstance();
 const useChat = (options: ChatProps): UseChatReturn => {
@@ -60,7 +61,6 @@ const useChat = (options: ChatProps): UseChatReturn => {
     []
   );
 
-  // 保存消息到当前会话
   const saveMessageToSession = useCallback(
     (message: Message) => {
       if (currentSessionId) {
@@ -262,6 +262,22 @@ const useChat = (options: ChatProps): UseChatReturn => {
     setError(null);
   }, []);
 
+  const handleCreateNewSession = useCallback(() => {
+    // 清空当前状态
+    setMessages([]);
+    setInput("");
+    setError(null);
+    setIsLoading(false);
+    setIsStreaming(false);
+    setCurrentSessionId(null);
+
+    // 请求创建新会话
+    vs.postMessage({
+      command: "createNewSession",
+      title: "新对话",
+    });
+  }, []);
+
   // 初始化：获取当前会话或创建新会话
   useEffect(() => {
     const initializeSession = async () => {
@@ -317,7 +333,6 @@ const useChat = (options: ChatProps): UseChatReturn => {
             setIsLoading(false);
             setIsStreaming(false);
           } else {
-            // 如果没有会话信息，清空所有状态
             setCurrentSessionId(null);
             setMessages([]);
             setInput("");
@@ -329,10 +344,15 @@ const useChat = (options: ChatProps): UseChatReturn => {
 
         case "messageSaved":
           if (message.success && message.currentSession) {
-            // 消息保存成功，可以进行其他操作
             console.log("Message saved successfully");
           }
           break;
+
+        case "createNewSessionFromToolbar": {
+          console.log("收到创建新会话请求");
+          handleCreateNewSession();
+          break;
+        }
       }
     };
 
@@ -356,6 +376,7 @@ const useChat = (options: ChatProps): UseChatReturn => {
     stop,
     setMessages,
     currentSessionId,
+    createNewSession: handleCreateNewSession,
   };
 };
 

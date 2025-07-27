@@ -23,6 +23,7 @@ const NeonChat: React.FC = () => {
     setInput,
     stop,
     append,
+    createNewSession,
   } = useChat({
     api: "/api/llm/chat",
   });
@@ -69,8 +70,6 @@ const NeonChat: React.FC = () => {
               <div key={msg?.id} className="assistant-message">
                 <ReactMarkdown
                   components={{
-                    // 自定义代码块组件
-                    // 修改 ReactMarkdown 中的 pre 组件
                     pre: ({ children, ...props }) => {
                       const codeRef = useRef<HTMLPreElement>(null);
                       const handleCopy = async () => {

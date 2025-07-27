@@ -34,7 +34,6 @@ export async function activate(context: vscode.ExtensionContext) {
   // 新增：新建会话命令
   context.subscriptions.push(
     vscode.commands.registerCommand("neon-coder.newSession", () => {
-      console.log("创建新会话");
       provider.createNewSession();
     })
   );
