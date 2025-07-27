@@ -5,7 +5,7 @@ import remarkGfm from "remark-gfm";
 import useChat from "../../hooks/useChat";
 import type { Message } from "../../types/chat";
 import "./index.css";
-
+import "./md.css";
 const EXAMPLE_PROMPTS = ["mcp工具调用"];
 
 const NeonChat: React.FC = () => {
@@ -17,6 +17,7 @@ const NeonChat: React.FC = () => {
     isLoading,
     isStreaming,
     error,
+    currentSessionId,
     handleInputChange,
     handleSubmit,
     setInput,
@@ -27,15 +28,13 @@ const NeonChat: React.FC = () => {
   });
 
   const chatStarted = messages.length > 0;
-
-  // Auto-scroll to bottom
+  console.log("Current Session ID:", currentSessionId);
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isLoading]);
 
-  // Example prompt click handler
   const handleExampleClick = (text: string) => {
     setInput(text);
     setTimeout(() => {
@@ -69,6 +68,143 @@ const NeonChat: React.FC = () => {
             return (
               <div key={msg?.id} className="assistant-message">
                 <ReactMarkdown
+                  components={{
+                    // 自定义代码块组件
+                    // 修改 ReactMarkdown 中的 pre 组件
+                    pre: ({ children, ...props }) => {
+                      const codeRef = useRef<HTMLPreElement>(null);
+                      const handleCopy = async () => {
+                        if (codeRef.current) {
+                          const codeText = codeRef.current.textContent || "";
+                          try {
+                            await navigator.clipboard.writeText(codeText);
+                            // 可以添加一个成功提示
+                            console.log("代码已复制");
+                          } catch (err) {
+                            console.error("复制失败:", err);
+                          }
+                        }
+                      };
+
+                      return (
+                        <div className="code-block-container">
+                          <div className="code-block-header">
+                            <button
+                              className="copy-button"
+                              onClick={handleCopy}
+                              title="复制代码"
+                            >
+                              <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 16 16"
+                                fill="currentColor"
+                              >
+                                <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z" />
+                              </svg>
+                            </button>
+                          </div>
+                          <pre
+                            ref={codeRef}
+                            className="markdown-pre"
+                            {...props}
+                          >
+                            {children}
+                          </pre>
+                        </div>
+                      );
+                    },
+                    // 自定义内联代码组件
+                    code: ({ children, className, ...props }) => (
+                      <code
+                        className={`markdown-code ${className || ""}`}
+                        {...props}
+                      >
+                        {children}
+                      </code>
+                    ),
+                    // 自定义段落组件
+                    p: ({ children, ...props }) => (
+                      <p className="markdown-p" {...props}>
+                        {children}
+                      </p>
+                    ),
+                    // 自定义标题组件
+                    h1: ({ children, ...props }) => (
+                      <h1 className="markdown-h1" {...props}>
+                        {children}
+                      </h1>
+                    ),
+                    h2: ({ children, ...props }) => (
+                      <h2 className="markdown-h2" {...props}>
+                        {children}
+                      </h2>
+                    ),
+                    h3: ({ children, ...props }) => (
+                      <h3 className="markdown-h3" {...props}>
+                        {children}
+                      </h3>
+                    ),
+                    h4: ({ children, ...props }) => (
+                      <h4 className="markdown-h4" {...props}>
+                        {children}
+                      </h4>
+                    ),
+                    h5: ({ children, ...props }) => (
+                      <h5 className="markdown-h5" {...props}>
+                        {children}
+                      </h5>
+                    ),
+                    h6: ({ children, ...props }) => (
+                      <h6 className="markdown-h6" {...props}>
+                        {children}
+                      </h6>
+                    ),
+                    // 自定义链接组件
+                    a: ({ children, ...props }) => (
+                      <a className="markdown-link" {...props}>
+                        {children}
+                      </a>
+                    ),
+                    // 自定义列表组件
+                    ul: ({ children, ...props }) => (
+                      <ul className="markdown-ul" {...props}>
+                        {children}
+                      </ul>
+                    ),
+                    ol: ({ children, ...props }) => (
+                      <ol className="markdown-ol" {...props}>
+                        {children}
+                      </ol>
+                    ),
+                    li: ({ children, ...props }) => (
+                      <li className="markdown-li" {...props}>
+                        {children}
+                      </li>
+                    ),
+                    // 自定义引用块组件
+                    blockquote: ({ children, ...props }) => (
+                      <blockquote className="markdown-blockquote" {...props}>
+                        {children}
+                      </blockquote>
+                    ),
+                    // 自定义表格组件
+                    table: ({ children, ...props }) => (
+                      <table className="markdown-table" {...props}>
+                        {children}
+                      </table>
+                    ),
+                    th: ({ children, ...props }) => (
+                      <th className="markdown-th" {...props}>
+                        {children}
+                      </th>
+                    ),
+                    td: ({ children, ...props }) => (
+                      <td className="markdown-td" {...props}>
+                        {children}
+                      </td>
+                    ),
+                  }}
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeHighlight]}
                 >

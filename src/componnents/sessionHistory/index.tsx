@@ -52,7 +52,7 @@ const SessionHistory = () => {
 
   // 处理会话删除
   const handleDeleteSession = (sessionId: string, event: React.MouseEvent) => {
-    event.stopPropagation(); // 阻止事件冒泡
+    event.stopPropagation();
 
     vs.postMessage({
       command: "deleteSession",
@@ -70,7 +70,6 @@ const SessionHistory = () => {
           setIsOpen((prev) => {
             const newState = !prev;
             if (newState) {
-              // 打开弹窗时加载会话数据
               loadSessions();
             }
             return newState;
