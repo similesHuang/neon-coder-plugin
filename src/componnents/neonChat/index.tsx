@@ -6,6 +6,7 @@ import useChat from "../../hooks/useChat";
 import type { Message } from "../../types/chat";
 import "./index.css";
 import "./md.css";
+
 const EXAMPLE_PROMPTS = ["mcp工具调用"];
 
 const NeonChat: React.FC = () => {
