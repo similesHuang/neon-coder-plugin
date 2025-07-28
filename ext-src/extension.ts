@@ -6,8 +6,6 @@ import { startServer } from "../server";
 import { setupMessageChannel } from "./messagChannel";
 
 export async function activate(context: vscode.ExtensionContext) {
-  // 注册 WebviewViewProvider
-
   console.log("Activating React Webview Extension...");
 
   const port = await startKoaServer(context);
@@ -24,31 +22,20 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // 注册刷新命令
-  context.subscriptions.push(
-    vscode.commands.registerCommand("neon-coder.refresh", () => {
-      provider.refresh();
-    })
-  );
-
-  // 新增：新建会话命令
   context.subscriptions.push(
     vscode.commands.registerCommand("neon-coder.newSession", () => {
       provider.createNewSession();
     })
   );
 
-  // 新增：显示历史会话命令
   context.subscriptions.push(
     vscode.commands.registerCommand("neon-coder.showHistory", () => {
       provider.toggleSessionHistory();
     })
   );
 
-  // 新增：关闭插件命令
   context.subscriptions.push(
     vscode.commands.registerCommand("neon-coder.close", () => {
-      console.log("关闭插件");
       provider.closePlugin();
     })
   );
@@ -97,13 +84,6 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
     webviewView.onDidDispose(() => {
       this._dispose();
     });
-  }
-
-  // 刷新页面
-  public refresh() {
-    if (this._view) {
-      this._view.webview.html = this._getHtmlForWebview(this._view.webview);
-    }
   }
 
   private _dispose() {
@@ -360,7 +340,6 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  // 新增：关闭插件方法
   public closePlugin() {
     vscode.commands.executeCommand("workbench.action.closeSidebar");
   }

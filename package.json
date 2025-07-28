@@ -32,11 +32,6 @@
         "category": "React"
       },
       {
-        "command": "neon-coder.refresh",
-        "title": "Neon Coder Refresh",
-        "icon": "$(refresh)"
-      },
-      {
         "command": "neon-coder.newSession",
         "title": "新建会话",
         "icon": "$(add)"
