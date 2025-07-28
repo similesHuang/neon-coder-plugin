@@ -305,12 +305,10 @@ const useChat = (options: ChatProps): UseChatReturn => {
       switch (message.command) {
         case "currentSessionLoaded":
           if (message.session) {
-            // 已有会话，加载聊天记录
             setCurrentSessionId(message.session.id);
             setMessages(message.session.messages || []);
             setIsInitialized(true);
           } else {
-            // 没有当前会话，创建新会话
             vs.postMessage({
               command: "createNewSession",
               title: "新对话",
