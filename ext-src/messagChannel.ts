@@ -2,6 +2,7 @@
 import * as vscode from "vscode";
 import httpRequest from "../utils/request";
 import { streamRequest } from "../utils/request/streamRequest";
+import { getCurrentFileInfo } from "./files";
 import { ChatStorageManager } from "./store";
 
 let storageManager: ChatStorageManager;
@@ -215,6 +216,24 @@ export function setupMessageChannel(
         }
         break;
       }
+
+      case "getCurrentFileInfo": {
+        try {
+          const fileInfo = getCurrentFileInfo();
+          webviewView.webview.postMessage({
+            command: "currentFileInfo",
+            fileInfo,
+          });
+        } catch (error) {
+          console.error("Error getting current file info:", error);
+          webviewView.webview.postMessage({
+            command: "error",
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      }
+
       default:
         break;
     }

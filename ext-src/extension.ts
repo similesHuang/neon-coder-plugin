@@ -3,6 +3,7 @@ import getPort from "get-port";
 import * as path from "path";
 import * as vscode from "vscode";
 import { startServer } from "../server";
+import { getCurrentFileInfo } from "./files";
 import { setupMessageChannel } from "./messagChannel";
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -49,6 +50,8 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
   private _updateInterval: NodeJS.Timeout | undefined;
   private _buildTimeout: NodeJS.Timeout | undefined;
   private _context: vscode.ExtensionContext;
+  private _fileChangeDisposables: vscode.Disposable[] = [];
+
   constructor(context: vscode.ExtensionContext) {
     this._context = context;
   }
@@ -70,16 +73,20 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
     this._startHotReload();
 
-    // 设置消息通道
     setupMessageChannel(webviewView, this._context);
 
-    // 等待 webview 准备就绪后发送初始化消息
-    setTimeout(() => {
-      webviewView.webview.postMessage({
-        command: "webviewReady",
-        timestamp: Date.now(),
-      });
-    }, 500);
+    // 设置文件监听
+    this._setupFileWatchers();
+
+    webviewView.onDidChangeVisibility(() => {
+      if (webviewView.visible) {
+        console.log("🎯 Webview became visible, sending current file info");
+
+        setTimeout(() => {
+          this._sendCurrentFileInfo();
+        }, 200);
+      }
+    });
 
     webviewView.onDidDispose(() => {
       this._dispose();
@@ -93,6 +100,58 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
     if (this._buildTimeout) {
       clearTimeout(this._buildTimeout);
     }
+    // 清理文件监听器
+    this._fileChangeDisposables.forEach((disposable) => disposable.dispose());
+    this._fileChangeDisposables = [];
+  }
+
+  // 设置文件监听器
+  private _setupFileWatchers() {
+    // 监听活动编辑器变化
+    const activeEditorDisposable = vscode.window.onDidChangeActiveTextEditor(
+      (editor) => {
+        this._sendCurrentFileInfo();
+      }
+    );
+    this._fileChangeDisposables.push(activeEditorDisposable);
+
+    // 监听文本选择变化
+    const selectionDisposable = vscode.window.onDidChangeTextEditorSelection(
+      (event) => {
+        this._sendCurrentFileInfo();
+      }
+    );
+    this._fileChangeDisposables.push(selectionDisposable);
+
+    // 监听文档内容变化（可选，如果你想实时同步）
+    const documentDisposable = vscode.workspace.onDidChangeTextDocument(
+      (event) => {
+        // 防抖处理，避免频繁更新
+        setTimeout(() => {
+          this._sendCurrentFileInfo();
+        }, 300);
+      }
+    );
+    this._fileChangeDisposables.push(documentDisposable);
+  }
+
+  // 发送当前文件信息到 webview
+  private _sendCurrentFileInfo() {
+    if (!this._view) {
+      return;
+    }
+
+    const fileInfo = getCurrentFileInfo();
+    this._view.webview.postMessage({
+      command: "currentFileInfo",
+      fileInfo,
+      timestamp: Date.now(),
+    });
+  }
+
+  // 公共方法：手动发送当前文件信息
+  public sendCurrentFileInfo() {
+    this._sendCurrentFileInfo();
   }
 
   private _startHotReload() {
