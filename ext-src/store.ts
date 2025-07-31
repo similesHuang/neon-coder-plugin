@@ -20,13 +20,41 @@ export interface ChatStore {
   currentSessionId?: string;
 }
 
+// 新增：配置相关接口
+export interface ModelConfig {
+  model: "gpt-4o" | "claude-4-sonnet";
+  apiKey: string;
+}
+
+export interface AppConfig {
+  currentModel: ModelConfig["model"];
+  apiKey: string; // 统一的API Key
+}
+
+export const MODEL_CONFIGS = {
+  "gpt-4o": {
+    name: "GPT-4o",
+  },
+  "claude-4-sonnet": {
+    name: "Claude 4 Sonnet",
+  },
+} as const;
+
+export const DEFAULT_CONFIG: AppConfig = {
+  currentModel: "claude-4-sonnet",
+  apiKey: "",
+};
+
 export class ChatStorageManager {
   private context: vscode.ExtensionContext;
   private readonly STORAGE_KEY = "neon-coder-chat-data";
+  private readonly CONFIG_KEY = "neon-coder-config";
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
   }
+
+  // ========== 聊天数据存储方法 ==========
 
   async getChatStore(): Promise<ChatStore> {
     const stored = await this.context.globalState.get<ChatStore>(
@@ -156,5 +184,75 @@ export class ChatStorageManager {
   async getSessionById(sessionId: string): Promise<ChatSession | null> {
     const chatStore = await this.getChatStore();
     return chatStore.sessions.find((s) => s.id === sessionId) || null;
+  }
+
+  // ========== 配置存储方法 ==========
+
+  async getAppConfig(): Promise<AppConfig> {
+    const stored = await this.context.globalState.get<AppConfig>(
+      this.CONFIG_KEY
+    );
+    console.log("Loaded app config:", stored);
+    return stored || DEFAULT_CONFIG;
+  }
+
+  async saveAppConfig(config: AppConfig): Promise<void> {
+    await this.context.globalState.update(this.CONFIG_KEY, config);
+    console.log("✅ App config saved to persistent storage");
+  }
+
+  /**
+   * 更新当前使用的模型
+   */
+  async setCurrentModel(model: ModelConfig["model"]): Promise<void> {
+    const config = await this.getAppConfig();
+    config.currentModel = model;
+    await this.saveAppConfig(config);
+    console.log(`✅ Current model updated to: ${model}`);
+  }
+
+  /**
+   * 更新API Key
+   */
+  async setApiKey(apiKey: string): Promise<void> {
+    const config = await this.getAppConfig();
+    config.apiKey = apiKey;
+    await this.saveAppConfig(config);
+    console.log(`✅ API Key updated`);
+  }
+
+  /**
+   * 获取当前模型配置
+   */
+  async getCurrentModelConfig(): Promise<ModelConfig | null> {
+    const config = await this.getAppConfig();
+
+    if (!config.apiKey) {
+      return null;
+    }
+
+    const modelInfo = MODEL_CONFIGS[config.currentModel];
+    return {
+      model: config.currentModel,
+      apiKey: config.apiKey,
+    };
+  }
+
+  /**
+   * 重置配置到默认值
+   */
+  async resetAppConfig(): Promise<void> {
+    await this.saveAppConfig(DEFAULT_CONFIG);
+    console.log("✅ App config reset to default values");
+  }
+
+  /**
+   * 清除API Key配置
+   */
+  async clearApiKey(): Promise<void> {
+    const config = await this.getAppConfig();
+    config.apiKey = "";
+    await this.saveAppConfig(config);
+    console.log(`✅ API Key cleared`);
   }
 }

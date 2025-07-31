@@ -1,6 +1,6 @@
 import "./App.css";
-import NeonChat from "./componnents/neonChat";
-import SessionHistory from "./componnents/sessionHistory";
+import NeonChat from "./components/neonChat";
+import SessionHistory from "./components/sessionHistory";
 const App = () => {
   // 初始化 VS Code 实例
   return (

@@ -3,8 +3,10 @@ import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import useChat from "../../hooks/useChat";
+import { useConfig } from "../../hooks/useConfig";
 import useFile from "../../hooks/useFile";
 import type { Message } from "../../types/chat";
+import Selector from "../selector";
 import "./index.css";
 import "./md.css";
 
@@ -14,6 +16,13 @@ const NeonChat: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { currentFile, fileList } = useFile();
+  const {
+    config,
+    isLoading: configLoading,
+    setCurrentModel,
+    isCurrentModelConfigured,
+  } = useConfig();
+
   useEffect(() => {
     console.log("Current File:", currentFile);
   }, [currentFile]);
@@ -35,13 +44,6 @@ const NeonChat: React.FC = () => {
   });
 
   const chatStarted = messages.length > 0;
-  console.log("Current Session ID:", currentSessionId);
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, isLoading]);
-
   const handleExampleClick = (text: string) => {
     setInput(text);
     setTimeout(() => {
@@ -65,6 +67,11 @@ const NeonChat: React.FC = () => {
   //     setInput(input + selectionContext);
   //   }
   // };
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, isLoading]);
 
   return (
     <div className="neon-chat-container">
@@ -286,6 +293,16 @@ const NeonChat: React.FC = () => {
             rows={2}
             disabled={isLoading}
           />
+
+          {/* 模型选择器 */}
+          <div className="model-selector-container">
+            <Selector
+              currentModel={config.currentModel}
+              onModelChange={setCurrentModel}
+              isConfigured={isCurrentModelConfigured()}
+            />
+          </div>
+
           <div className="input-buttons">
             {isStreaming ? (
               <button onClick={stop} className="stop-button" title="停止生成">

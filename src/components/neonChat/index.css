@@ -160,9 +160,14 @@
   color: var(--vscode-input-placeholderForeground);
 }
 
+.model-selector-container {
+  border-top: 1px solid var(--vscode-widget-border);
+  background: var(--vscode-input-background);
+}
+
 .input-buttons {
   position: absolute;
-  bottom: 8px;
+  bottom: 4px;
   right: 8px;
   display: flex;
   gap: 4px;
@@ -171,7 +176,7 @@
 
 .stop-button,
 .send-button {
-  padding: 8px;
+  padding: 4px;
   border-radius: 6px;
   border: none;
   cursor: pointer;
@@ -230,6 +235,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 .file-icon {
@@ -284,4 +290,83 @@
 .action-icon {
   width: 12px;
   height: 12px;
+}
+
+.current-model-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.model-name {
+  font-weight: 500;
+  color: var(--vscode-badge-foreground);
+}
+
+.config-warning {
+  color: var(--vscode-errorForeground);
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.config-success {
+  color: var(--vscode-terminal-ansiGreen);
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.config-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background-color: transparent;
+  color: var(--vscode-descriptionForeground);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.config-button:hover {
+  background-color: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+.config-button:active {
+  background-color: var(--vscode-toolbar-activeBackground);
+}
+
+.config-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* 响应式设计 */
+@media (max-width: 200px) {
+  .file-info-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .file-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .file-action-button {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+
+  .model-status-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 }

@@ -234,6 +234,100 @@ export function setupMessageChannel(
         break;
       }
 
+      // 获取配置
+      case "getConfig": {
+        try {
+          const config = await storageManager.getAppConfig();
+          webviewView.webview.postMessage({
+            command: "configLoaded",
+            config,
+          });
+        } catch (error) {
+          console.error("Error loading config:", error);
+          webviewView.webview.postMessage({
+            command: "configError",
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      }
+
+      // 保存配置
+      case "saveConfig": {
+        try {
+          await storageManager.saveAppConfig(message.config);
+          webviewView.webview.postMessage({
+            command: "configSaved",
+            success: true,
+          });
+          console.log("✅ Configuration saved successfully");
+        } catch (error) {
+          console.error("Error saving config:", error);
+          webviewView.webview.postMessage({
+            command: "configError",
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      }
+
+      // 更新当前模型
+      case "setCurrentModel": {
+        try {
+          await storageManager.setCurrentModel(message.model);
+          const config = await storageManager.getAppConfig();
+          webviewView.webview.postMessage({
+            command: "configLoaded",
+            config,
+          });
+        } catch (error) {
+          console.error("Error setting current model:", error);
+          webviewView.webview.postMessage({
+            command: "configError",
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      }
+
+      // 更新API Key
+      case "setApiKey": {
+        try {
+          await storageManager.setApiKey(message.apiKey);
+          const config = await storageManager.getAppConfig();
+          webviewView.webview.postMessage({
+            command: "configLoaded",
+            config,
+          });
+        } catch (error) {
+          console.error("Error setting API key:", error);
+          webviewView.webview.postMessage({
+            command: "configError",
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      }
+
+      // 从命令设置API Key
+      case "setApiKeyFromCommand": {
+        try {
+          await storageManager.setApiKey(message.apiKey);
+          const config = await storageManager.getAppConfig();
+          webviewView.webview.postMessage({
+            command: "configLoaded",
+            config,
+          });
+        } catch (error) {
+          console.error("Error setting API key from command:", error);
+          webviewView.webview.postMessage({
+            command: "configError",
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        break;
+      }
+
       default:
         break;
     }

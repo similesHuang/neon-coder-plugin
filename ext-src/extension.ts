@@ -36,6 +36,12 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand("neon-coder.configApiKey", async () => {
+      await provider.configApiKey();
+    })
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand("neon-coder.close", () => {
       provider.closePlugin();
     })
@@ -396,6 +402,31 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
         command: "toggleSessionHistory",
         timestamp: Date.now(),
       });
+    }
+  }
+
+  public async configApiKey() {
+    const apiKey = await vscode.window.showInputBox({
+      prompt: "请输入 API Key",
+      placeHolder: "输入您的 API Key",
+      password: true,
+      validateInput: (value) => {
+        if (!value || value.trim().length === 0) {
+          return "API Key 不能为空";
+        }
+        return null;
+      },
+    });
+
+    if (apiKey) {
+      // 通过消息通道发送给 webview
+      if (this._view) {
+        this._view.webview.postMessage({
+          command: "setApiKeyFromCommand",
+          apiKey: apiKey.trim(),
+        });
+      }
+      vscode.window.showInformationMessage("API Key 已更新！");
     }
   }
 
