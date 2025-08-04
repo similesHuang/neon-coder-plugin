@@ -119,10 +119,8 @@
   "scripts": {
     "vscode:prepublish": "node ./scripts/build-non-split.js && tsc -p tsconfig.extension.json",
     "start": "react-scripts start",
-    "build": "node ./scripts/build-non-split.js && tsc -p tsconfig.extension.json && npm run build:server",
+    "build": "node ./scripts/build-non-split.js && tsc -p tsconfig.extension.json",
     "test": "react-scripts test --env=jsdom",
-    "build:server": "tsc -p tsconfig.server.json",
-    "start:server": "NODE_ENV=development nodemon --watch server -e ts --exec \"ts-node -P tsconfig.server.json server/index.ts\"",
     "eject": "react-scripts eject",
     "compile": "tsc -p tsconfig.extension.json"
   },

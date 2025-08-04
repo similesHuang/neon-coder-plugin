@@ -10,7 +10,7 @@
       },
       "problemMatcher": [],
       "label": "npm: build",
-      "detail": "node ./scripts/build-non-split.js && tsc -p tsconfig.extension.json && npm run build:server"
+      "detail": "node ./scripts/build-non-split.js && tsc -p tsconfig.extension.json"
     }
   ]
 }

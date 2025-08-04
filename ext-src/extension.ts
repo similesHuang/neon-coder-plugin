@@ -1,15 +1,11 @@
 import * as fs from "fs";
-import getPort from "get-port";
 import * as path from "path";
 import * as vscode from "vscode";
-import { startServer } from "../server";
 import { getCurrentFileInfo } from "./files";
 import { setupMessageChannel } from "./messagChannel";
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log("Activating React Webview Extension...");
-
-  const port = await startKoaServer(context);
 
   const provider = new ReactViewProvider(context);
   context.subscriptions.push(
@@ -443,27 +439,4 @@ function getNonce() {
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
   return text;
-}
-
-async function startKoaServer(
-  context: vscode.ExtensionContext
-): Promise<number> {
-  try {
-    // 动态获取可用端口
-    const port = await getPort({ port: 3002 });
-    const server = startServer(port);
-    console.log(`Koa server started on port ${port}`);
-    // 确保插件停用时关闭服务器
-    context.subscriptions.push({
-      dispose: () => {
-        server.close();
-        console.log("Server stopped");
-      },
-    });
-
-    return port;
-  } catch (error) {
-    vscode.window.showErrorMessage(`Failed to start server: ${error}`);
-    throw error;
-  }
 }

@@ -1,8 +1,8 @@
-import httpRequest from ".";
+import { chatService, Message } from "../../ext-src/service";
 
 interface StreamRequestOptions {
   url: string;
-  body?: any;
+  body?: string;
   headers?: Record<string, string>;
   onChunk?: (chunk: string, fullContent: string) => void;
   onComplete?: (fullContent: string) => void;
@@ -13,32 +13,64 @@ interface StreamRequestOptions {
 export const streamRequest = async ({
   url,
   body,
-  headers = {},
+  headers,
   onChunk,
   onComplete,
   onError,
   signal,
 }: StreamRequestOptions) => {
   try {
-    const response = await httpRequest.post(url, {
-      headers: headers,
-      signal,
-      body,
-    });
-    const reader = response.body?.getReader();
-    if (!reader) {
-      throw new Error("Response body is not readable");
+    // 解析请求体中的消息
+    let messages: Message[] = [];
+    if (body) {
+      try {
+        const parsedBody = JSON.parse(body);
+        messages = parsedBody.messages || [];
+      } catch (error) {
+        throw new Error("Invalid request body format");
+      }
     }
-    const decoder = new TextDecoder();
+
+    // 确保chatService已初始化
+    if (!chatService.getConfig().apiKey) {
+      throw new Error("API Key not configured. Please set your API key first.");
+    }
+
     let fullContent = "";
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value, { stream: true });
-      fullContent += chunk;
-      onChunk?.(chunk, fullContent);
+    let aborted = false;
+
+    // 监听取消信号
+    const abortListener = () => {
+      aborted = true;
+    };
+    signal?.addEventListener("abort", abortListener);
+
+    try {
+      // 使用chatService的流式聊天
+      for await (const response of chatService.streamChat(messages)) {
+        // 检查是否被取消
+        if (aborted || signal?.aborted) {
+          throw new Error("Request aborted");
+        }
+
+        if (response.error) {
+          throw new Error(response.error);
+        }
+
+        if (response.isComplete) {
+          onComplete?.(fullContent);
+          break;
+        }
+
+        if (response.content) {
+          fullContent += response.content;
+          onChunk?.(response.content, fullContent);
+        }
+      }
+    } finally {
+      signal?.removeEventListener("abort", abortListener);
     }
-    onComplete?.(fullContent);
+
     return fullContent;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));

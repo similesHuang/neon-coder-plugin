@@ -39,9 +39,7 @@ const NeonChat: React.FC = () => {
     stop,
     append,
     createNewSession,
-  } = useChat({
-    api: "/api/llm/chat",
-  });
+  } = useChat({});
 
   const chatStarted = messages.length > 0;
   const handleExampleClick = (text: string) => {

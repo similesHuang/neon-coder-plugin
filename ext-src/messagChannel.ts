@@ -1,8 +1,7 @@
 // ext-src/messagChannel.ts
 import * as vscode from "vscode";
-import httpRequest from "../utils/request";
-import { streamRequest } from "../utils/request/streamRequest";
 import { getCurrentFileInfo } from "./files";
+import { chatService } from "./service";
 import { ChatStorageManager } from "./store";
 
 let storageManager: ChatStorageManager;
@@ -137,77 +136,94 @@ export function setupMessageChannel(
         break;
       }
 
-      case "request": {
-        try {
-          const {
-            api,
-            options,
-            method,
-          }: {
-            api: string;
-            method: "GET" | "POST" | "PUT" | "DELETE";
-            options: RequestInit;
-          } = message;
-          const res = await httpRequest?.[method?.toLocaleLowerCase()]?.(
-            api,
-            options
-          );
-          webviewView.webview.postMessage({
-            command: "response",
-            api: message.api,
-            response: res,
-          });
-        } catch (error) {
-          console.error("Error handling request:", error);
-          webviewView.webview.postMessage({
-            command: "error",
-            api: message.api,
-            error: error instanceof Error ? error.message : String(error),
-          });
-        }
-        break;
-      }
       case "streamRequest": {
         try {
-          const { api, options = {}, requestId } = message;
-          const abortController = new AbortController();
-          // 监听前端的 abortStream
-          const disposable = webviewView.webview.onDidReceiveMessage((msg) => {
-            if (msg.command === "abortStream" && msg.requestId === requestId) {
-              abortController.abort();
-              disposable.dispose();
-            }
+          const { messages, requestId } = message;
+          console.log("Stream request received:", {
+            messagesCount: messages?.length,
+            requestId,
           });
 
-          await streamRequest({
-            url: api,
-            body: options.body,
-            headers: options.headers,
-            signal: abortController.signal,
-            onChunk: (chunk, fullContent) => {
-              webviewView.webview.postMessage({
-                command: "streamChunk",
-                requestId,
-                chunk,
-                fullContent,
-              });
-            },
-            onComplete: (fullContent) => {
-              webviewView.webview.postMessage({
-                command: "streamComplete",
-                requestId,
-                fullContent,
-              });
-            },
-            onError: (error) => {
-              webviewView.webview.postMessage({
-                command: "streamError",
-                requestId,
-                error: error.message || String(error),
-              });
-            },
+          // 获取配置并初始化chatService
+          const config = await storageManager.getAppConfig();
+          console.log("Using config:", config);
+          await chatService.initialize({
+            apiKey: config.apiKey,
+            model: config.currentModel || "claude-4-sonnet",
           });
+
+          let aborted = false;
+          let fullContent = "";
+
+          // 监听中断请求
+          const abortListener = webviewView.webview.onDidReceiveMessage(
+            (msg) => {
+              if (
+                msg.command === "abortStream" &&
+                msg.requestId === requestId
+              ) {
+                aborted = true;
+                abortListener.dispose();
+                webviewView.webview.postMessage({
+                  command: "streamAbort",
+                  requestId,
+                });
+              }
+            }
+          );
+
+          // 开始流式聊天
+          (async () => {
+            try {
+              for await (const response of chatService.streamChat(messages)) {
+                if (aborted) break;
+
+                if (response.error) {
+                  if (!aborted) {
+                    webviewView.webview.postMessage({
+                      command: "streamError",
+                      requestId,
+                      error: response.error,
+                    });
+                  }
+                  break;
+                }
+
+                if (response.isComplete) {
+                  if (!aborted) {
+                    webviewView.webview.postMessage({
+                      command: "streamComplete",
+                      requestId,
+                      fullContent,
+                    });
+                  }
+                  break;
+                }
+
+                if (response.content && !aborted) {
+                  fullContent += response.content;
+                  webviewView.webview.postMessage({
+                    command: "streamChunk",
+                    requestId,
+                    chunk: response.content,
+                    fullContent,
+                  });
+                }
+              }
+            } catch (error) {
+              if (!aborted) {
+                webviewView.webview.postMessage({
+                  command: "streamError",
+                  requestId,
+                  error: error instanceof Error ? error.message : String(error),
+                });
+              }
+            } finally {
+              abortListener.dispose();
+            }
+          })();
         } catch (error) {
+          console.error("Error in stream request:", error);
           webviewView.webview.postMessage({
             command: "streamError",
             requestId: message.requestId,

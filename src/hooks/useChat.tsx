@@ -4,7 +4,6 @@ import { callStreamApi } from "./useApi";
 import getVSCodeInstance from "./useVscode";
 
 interface ChatProps {
-  api: string;
   initialMessages?: Message[];
   onError?: (error: Error) => void;
   onFinish?: (message: Message) => void;
@@ -33,7 +32,6 @@ interface UseChatReturn {
 const vs = getVSCodeInstance();
 const useChat = (options: ChatProps): UseChatReturn => {
   const {
-    api,
     initialMessages = [],
     onError,
     onFinish,
@@ -95,7 +93,6 @@ const useChat = (options: ChatProps): UseChatReturn => {
 
       try {
         const { promise, abort } = callStreamApi(
-          api,
           {
             headers: {
               "Content-Type": "application/json",
@@ -166,15 +163,7 @@ const useChat = (options: ChatProps): UseChatReturn => {
         abortControllerRef.current = null;
       }
     },
-    [
-      api,
-      headers,
-      onError,
-      onFinish,
-      onResponse,
-      saveMessageToSession,
-      isStreaming,
-    ]
+    [headers, onError, onFinish, onResponse, saveMessageToSession, isStreaming]
   );
 
   const handleSubmit = useCallback(
