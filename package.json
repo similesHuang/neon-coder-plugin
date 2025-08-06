@@ -26,6 +26,19 @@
           "type": "number",
           "default": 3002,
           "description": "本地服务器端口"
+        },
+        "neonCoder.mcpServers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "自定义MCP服务器配置列表 (JSON格式字符串)",
+          "examples": [
+            "{\"type\":\"stdio\",\"name\":\"my-server\",\"path\":\"/path/to/server.js\",\"description\":\"My custom MCP server\"}",
+            "{\"type\":\"http\",\"name\":\"web-server\",\"url\":\"http://localhost:8080/mcp\",\"description\":\"HTTP MCP server\"}",
+            "{\"type\":\"sse\",\"name\":\"sse-server\",\"url\":\"http://localhost:3001/sse\",\"description\":\"SSE MCP server\"}"
+          ]
         }
       }
     },
@@ -49,6 +62,11 @@
         "command": "neon-coder.configApiKey",
         "title": "配置 API Key",
         "icon": "$(key)"
+      },
+      {
+        "command": "neon-coder.manageMcp",
+        "title": "管理 MCP 服务器",
+        "icon": "$(server-process)"
       },
       {
         "command": "neon-coder.close",
@@ -83,9 +101,14 @@
           "group": "navigation@3"
         },
         {
-          "command": "neon-coder.close",
+          "command": "neon-coder.manageMcp",
           "when": "view == neon-coder-chat",
           "group": "navigation@4"
+        },
+        {
+          "command": "neon-coder.close",
+          "when": "view == neon-coder-chat",
+          "group": "navigation@5"
         }
       ]
     },
@@ -97,11 +120,15 @@
           "icon": "$(zap)"
         }
       ]
-    }
+    },
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "neon-coder-mcp",
+        "label": "Neon Coder MCP Server Provider"
+      }
+    ]
   },
   "dependencies": {
-    "@koa/cors": "^5.0.0",
-    "@koa/router": "^13.1.1",
     "client-connect-server": "^3.0.1",
     "dotenv": "^17.2.0",
     "get-port": "^7.1.0",
@@ -125,11 +152,6 @@
     "compile": "tsc -p tsconfig.extension.json"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.0",
-    "@types/koa": "^2.15.0",
-    "@types/koa__cors": "^5.0.0",
-    "@types/koa__router": "^12.0.4",
-    "@types/koa-bodyparser": "^4.3.12",
     "@types/node": "^18.15.0",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",

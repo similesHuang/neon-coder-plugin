@@ -1,12 +1,7 @@
 import OpenAI from "openai";
 import * as vscode from "vscode";
-
-export interface Message {
-  role: "user" | "assistant" | "system";
-  content: string;
-  timestamp?: number;
-  id?: string;
-}
+import { ProviderManager } from "./providers/providerManager";
+import { Message } from "./types";
 
 export interface ChatConfig {
   model: string;
@@ -20,6 +15,7 @@ export interface ChatConfig {
 export interface StreamResponse {
   content: string;
   isComplete: boolean;
+  contextUsed?: boolean;
   error?: string;
 }
 
@@ -27,6 +23,7 @@ export class ChatService {
   private openai: OpenAI | null = null;
   private config: ChatConfig;
   private isInitialized = false;
+  private providerManager: ProviderManager;
 
   constructor() {
     this.config = {
@@ -37,6 +34,7 @@ export class ChatService {
       temperature: 0.7,
       systemPrompt: "你是一个专业的AI编程助手，专门帮助用户解决编程问题。",
     };
+    this.providerManager = new ProviderManager();
   }
 
   // 初始化服务
@@ -81,176 +79,211 @@ export class ChatService {
     }
   }
 
-  // 智能上下文控制
-  private controlContext(messages: Message[]): Message[] {
-    if (!messages || messages.length === 0) return [];
-
-    const maxTokens = this.config.maxTokens || 8000;
-    const reservedTokens = 1000; // 为响应预留的token
-    const availableTokens = maxTokens - reservedTokens;
-
-    // 分类消息
-    const systemMessages = messages.filter((msg) => msg.role === "system");
-    const conversationMessages = messages.filter(
-      (msg) => msg.role !== "system"
-    );
-
-    const result: Message[] = [];
-    let tokenCount = 0;
-
-    // 优先添加系统消息
-    for (const msg of systemMessages) {
-      const tokens = this.estimateTokens(msg.content);
-      if (tokenCount + tokens <= availableTokens * 0.2) {
-        // 系统消息最多占20%
-        result.push(msg);
-        tokenCount += tokens;
-      }
-    }
-
-    // 添加系统提示（如果没有系统消息）
-    if (systemMessages.length === 0 && this.config.systemPrompt) {
-      const systemTokens = this.estimateTokens(this.config.systemPrompt);
-      if (tokenCount + systemTokens <= availableTokens * 0.2) {
-        result.push({
-          role: "system",
-          content: this.config.systemPrompt,
-        });
-        tokenCount += systemTokens;
-      }
-    }
-
-    // 从最新消息开始向前添加
-    for (let i = conversationMessages.length - 1; i >= 0; i--) {
-      const msg = conversationMessages[i];
-      const tokens = this.estimateTokens(msg.content);
-
-      if (tokenCount + tokens <= availableTokens) {
-        result.unshift(msg);
-        tokenCount += tokens;
-      } else {
-        break;
-      }
-    }
-
-    // 如果还有空间且有被截断的消息，添加摘要
-    if (
-      conversationMessages.length >
-      result.filter((m) => m.role !== "system").length
-    ) {
-      const truncatedMessages = conversationMessages.slice(
-        0,
-        conversationMessages.length -
-          result.filter((m) => m.role !== "system").length
-      );
-      const summary = this.summarizeMessages(truncatedMessages);
-      const summaryTokens = this.estimateTokens(summary);
-
-      if (tokenCount + summaryTokens <= availableTokens) {
-        result.splice(systemMessages.length, 0, {
-          role: "system",
-          content: `[历史对话摘要]: ${summary}`,
-        });
-      }
-    }
-
-    console.log(
-      `Context control: ${messages.length} -> ${result.length} messages, estimated tokens: ${tokenCount}`
-    );
-    return result;
-  }
-
-  // 估算token数量
-  private estimateTokens(text: string): number {
-    if (!text) return 0;
-
-    const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
-    const englishWords = text
-      .split(/\s+/)
-      .filter((word) => /[a-zA-Z]/.test(word)).length;
-    const codeBlocks = (text.match(/```[\s\S]*?```/g) || []).join("").length;
-    const otherChars = text.length - chineseChars - codeBlocks;
-
-    return Math.ceil(
-      chineseChars * 1.3 +
-        englishWords * 1.2 +
-        codeBlocks * 0.8 +
-        otherChars * 0.5
-    );
-  }
-
-  // 消息摘要
-  private summarizeMessages(messages: Message[]): string {
-    const topics = new Set<string>();
-    const keyPoints: string[] = [];
-
-    for (const msg of messages) {
-      const content = msg.content;
-
-      // 识别主题
-      if (content.includes("```")) topics.add("代码讨论");
-      if (content.match(/[？?]/)) topics.add("问题咨询");
-      if (content.includes("错误") || content.includes("bug"))
-        topics.add("问题解决");
-      if (content.includes("优化") || content.includes("改进"))
-        topics.add("代码优化");
-
-      // 提取关键点
-      if (content.length < 100 && content.length > 10) {
-        keyPoints.push(content.slice(0, 50));
-      }
-    }
-
-    const summary = [
-      topics.size > 0 ? `讨论了${Array.from(topics).join("、")}` : "",
-      keyPoints.length > 0
-        ? `主要内容包括: ${keyPoints.slice(0, 3).join("; ")}`
-        : "",
-    ]
-      .filter(Boolean)
-      .join("。");
-
-    return summary || `进行了${messages.length}轮对话交流`;
-  }
-
-  // 流式聊天
+  // 流式聊天 - 支持 Function Calling（基于参考代码重写）
   async *streamChat(
-    messages: Message[]
+    messages: Message[],
+    maxToolDepth: number = 5
   ): AsyncGenerator<StreamResponse, void, unknown> {
     this.ensureInitialized();
 
     try {
-      const controlledMessages = this.controlContext(messages);
+      // 检查是否达到最大工具调用深度
+      if (maxToolDepth <= 0) {
+        console.warn("达到最大工具调用深度，停止递归");
+        yield {
+          content:
+            "抱歉，工具调用达到最大深度限制。请直接告诉我您需要什么帮助。",
+          isComplete: true,
+          contextUsed: false,
+        };
+        return;
+      }
 
-      const completion = await this.openai!.chat.completions.create({
-        model: this.config.model,
-        messages: controlledMessages.map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        })),
-        stream: true,
-        max_tokens: this.config.maxTokens
-          ? Math.min(this.config.maxTokens, 4000)
-          : 4000,
-        temperature: this.config.temperature,
+      console.log(`工具调用深度: ${5 - maxToolDepth + 1}/5`);
+
+      const lastUserMessage = messages.filter((m) => m.role === "user").pop();
+      const userQuery = lastUserMessage?.content || "";
+
+      // 获取增强的上下文 - 仅在第一层调用时获取
+      const shouldGetContext = maxToolDepth === 5;
+      const enhancedContext = shouldGetContext
+        ? await this.providerManager.getEnhancedContext(userQuery, messages)
+        : { summary: "", contexts: [], tools: [] };
+
+      // 简化消息处理
+      let processedMessages = [...messages];
+
+      // 仅在第一次调用且有上下文时添加上下文信息
+      if (
+        shouldGetContext &&
+        enhancedContext.summary &&
+        enhancedContext.contexts.length > 0
+      ) {
+        const contextMessage: Message = {
+          role: "system",
+          content: `相关上下文：${enhancedContext.summary}`,
+          timestamp: Date.now(),
+          id: "context-" + Date.now(),
+        };
+        processedMessages = [contextMessage, ...messages];
+      }
+
+      // 获取工具定义
+      const availableTools = enhancedContext.tools || [];
+      const tools =
+        availableTools.length > 0
+          ? availableTools.map((tool) => {
+              let parameters = tool.parameters;
+              if (!parameters || typeof parameters !== "object") {
+                parameters = { type: "object", properties: {} };
+              }
+              if (!parameters.type) parameters.type = "object";
+              if (!parameters.properties) parameters.properties = {};
+
+              return {
+                type: "function" as const,
+                function: {
+                  name: tool.name,
+                  description: tool.description || `Execute ${tool.name}`,
+                  parameters,
+                },
+              };
+            })
+          : undefined;
+
+      // 转换消息格式为OpenAI API格式
+      let currentMessages = processedMessages.map((msg) => {
+        const baseMessage = {
+          role: msg.role as any,
+          content: msg.content || "",
+        };
+
+        if (msg.role === "tool" && msg.tool_call_id) {
+          return { ...baseMessage, tool_call_id: msg.tool_call_id };
+        }
+        if (msg.role === "assistant" && msg.tool_calls) {
+          return { ...baseMessage, tool_calls: msg.tool_calls };
+        }
+        return baseMessage;
       });
 
-      let fullContent = "";
+      console.log("处理消息数量:", processedMessages.length);
+      console.log("API消息数量:", currentMessages.length);
 
-      for await (const chunk of completion) {
-        const content = chunk.choices?.[0]?.delta?.content || "";
-        if (content) {
-          fullContent += content;
-          yield {
-            content,
-            isComplete: false,
-          };
+      let iteration = 0;
+
+      // 使用while循环代替嵌套generator
+      while (iteration < maxToolDepth) {
+        iteration++;
+        console.log(
+          `流式处理第 ${iteration} 轮，消息数量: ${currentMessages.length}`
+        );
+
+        // 创建流式请求
+        const stream = await this.openai!.chat.completions.create({
+          model: this.config.model,
+          messages: currentMessages,
+          max_tokens: this.config.maxTokens
+            ? Math.min(this.config.maxTokens, 4000)
+            : 4000,
+          temperature: this.config.temperature,
+          stream: true, // 使用流式处理
+          tools: tools,
+          tool_choice: tools && tools.length > 0 ? "auto" : undefined,
+        });
+
+        let toolCalls: any[] = [];
+        let streamContent = "";
+
+        // 处理流式响应
+        for await (const chunk of stream) {
+          const delta = chunk.choices[0]?.delta;
+
+          // 输出内容
+          if (delta?.content) {
+            streamContent += delta.content;
+            yield {
+              content: delta.content,
+              isComplete: false,
+              contextUsed: enhancedContext.contexts.length > 0,
+            };
+          }
+
+          // 收集工具调用
+          if (delta?.tool_calls) {
+            // 处理流式工具调用数据
+            for (const toolCallDelta of delta.tool_calls) {
+              if (toolCallDelta.index !== undefined) {
+                if (!toolCalls[toolCallDelta.index]) {
+                  toolCalls[toolCallDelta.index] = {
+                    id: toolCallDelta.id,
+                    type: toolCallDelta.type,
+                    function: {
+                      name: toolCallDelta.function?.name || "",
+                      arguments: toolCallDelta.function?.arguments || "",
+                    },
+                  };
+                } else {
+                  // 追加函数参数
+                  if (toolCallDelta.function?.arguments) {
+                    toolCalls[toolCallDelta.index].function.arguments +=
+                      toolCallDelta.function.arguments;
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // 如果有工具调用，处理它们（参考代码的关键逻辑）
+        if (toolCalls.length > 0) {
+          try {
+            console.log(`检测到 ${toolCalls.length} 个工具调用`);
+
+            // 执行工具调用
+            const toolResult = await this.handleToolCallsLikeReference(
+              toolCalls
+            );
+
+            if (toolResult) {
+              console.log(`工具执行完成，结果长度: ${toolResult.length}`);
+
+              // 关键：将工具结果作为用户消息添加（参考代码的做法）
+              currentMessages.push({
+                role: "user",
+                content: toolResult,
+              });
+
+              console.log(`添加工具结果后消息数量: ${currentMessages.length}`);
+
+              // 继续下一轮循环处理
+              continue;
+            } else {
+              // 没有工具结果，结束处理
+              break;
+            }
+          } catch (error) {
+            console.error("工具调用错误:", error);
+            yield {
+              content: `\n工具调用失败: ${
+                error instanceof Error ? error.message : "Unknown error"
+              }\n`,
+              isComplete: false,
+              contextUsed: enhancedContext.contexts.length > 0,
+            };
+            break;
+          }
+        } else {
+          // 没有工具调用，完成响应
+          break;
         }
       }
 
+      // 完成响应
       yield {
         content: "",
         isComplete: true,
+        contextUsed: enhancedContext.contexts.length > 0,
       };
     } catch (error) {
       console.error("StreamChat error:", error);
@@ -262,6 +295,123 @@ export class ChatService {
         }`,
       };
     }
+  }
+
+  // 按照参考代码的方式处理工具调用
+  private async handleToolCallsLikeReference(
+    toolCalls: any[]
+  ): Promise<string> {
+    const toolResults: string[] = [];
+
+    for (const toolCall of toolCalls) {
+      try {
+        console.log(`执行工具: ${toolCall.function.name}`);
+        console.log(`工具参数原始数据: "${toolCall.function.arguments}"`);
+
+        // 解析工具参数（处理可能的空参数或流式传输不完整的情况）
+        let parameters = {};
+        try {
+          if (
+            toolCall.function.arguments &&
+            toolCall.function.arguments.trim()
+          ) {
+            parameters = JSON.parse(toolCall.function.arguments);
+          } else {
+            console.log(`工具 ${toolCall.function.name} 没有参数，使用空对象`);
+            parameters = {};
+          }
+        } catch (parseError) {
+          console.error(
+            `解析工具参数失败: "${toolCall.function.arguments}"`,
+            parseError
+          );
+          // 如果解析失败，使用空对象作为参数
+          parameters = {};
+        }
+
+        console.log(`解析后的参数:`, parameters);
+
+        // 通过 ProviderManager 执行工具
+        const result = await this.providerManager.executeFunction(
+          toolCall.function.name,
+          parameters
+        );
+
+        // 按照参考代码的格式返回结果
+        toolResults.push(
+          `工具 ${toolCall.function.name} 执行结果:\n${JSON.stringify(result)}`
+        );
+        console.log(`工具 ${toolCall.function.name} 执行成功`);
+      } catch (error) {
+        const errorMsg = `工具 ${toolCall.function.name} 执行失败: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`;
+        toolResults.push(errorMsg);
+        console.error(`工具执行失败 ${toolCall.function.name}:`, error);
+      }
+    }
+
+    return toolResults.join("\n\n");
+  }
+
+  // 静默执行工具调用（不向用户显示执行过程）
+  private async executeToolCallsSilently(toolCalls: any[]): Promise<Message[]> {
+    const toolMessages: Message[] = [];
+
+    for (const toolCall of toolCalls) {
+      try {
+        console.log(`执行工具: ${toolCall.function.name}`);
+
+        // 解析工具参数（处理可能的空参数）
+        let parameters = {};
+        try {
+          if (
+            toolCall.function.arguments &&
+            toolCall.function.arguments.trim()
+          ) {
+            parameters = JSON.parse(toolCall.function.arguments);
+          } else {
+            console.log(`工具 ${toolCall.function.name} 没有参数，使用空对象`);
+            parameters = {};
+          }
+        } catch (parseError) {
+          console.error(
+            `解析工具参数失败: "${toolCall.function.arguments}"`,
+            parseError
+          );
+          parameters = {};
+        }
+
+        // 通过 ProviderManager 执行工具
+        const result = await this.providerManager.executeFunction(
+          toolCall.function.name,
+          parameters
+        );
+
+        toolMessages.push({
+          role: "tool",
+          content: JSON.stringify(result),
+          tool_call_id: toolCall.id,
+          timestamp: Date.now(),
+          id: "tool-" + toolCall.id + "-" + Date.now(),
+        });
+
+        console.log(`工具 ${toolCall.function.name} 执行成功`);
+      } catch (error) {
+        console.error(`工具执行失败 ${toolCall.function.name}:`, error);
+        toolMessages.push({
+          role: "tool",
+          content: `Error: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          tool_call_id: toolCall.id,
+          timestamp: Date.now(),
+          id: "tool-error-" + toolCall.id + "-" + Date.now(),
+        });
+      }
+    }
+
+    return toolMessages;
   }
 
   // 获取当前配置
@@ -279,3 +429,4 @@ export class ChatService {
 
 // 单例实例
 export const chatService = new ChatService();
+export type { Message };

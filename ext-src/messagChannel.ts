@@ -139,14 +139,9 @@ export function setupMessageChannel(
       case "streamRequest": {
         try {
           const { messages, requestId } = message;
-          console.log("Stream request received:", {
-            messagesCount: messages?.length,
-            requestId,
-          });
 
           // 获取配置并初始化chatService
           const config = await storageManager.getAppConfig();
-          console.log("Using config:", config);
           await chatService.initialize({
             apiKey: config.apiKey,
             model: config.currentModel || "claude-4-sonnet",
