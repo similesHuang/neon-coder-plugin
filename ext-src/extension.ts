@@ -464,11 +464,11 @@ class ReactViewProvider implements vscode.WebviewViewProvider {
   private async addMcpServer() {
     const serverType = await vscode.window.showQuickPick(
       [
-        {
-          label: "Stdio Server",
-          value: "stdio",
-          description: "通过标准输入输出通信的服务器",
-        },
+        // {
+        //   label: "Stdio Server",
+        //   value: "stdio",
+        //   description: "通过标准输入输出通信的服务器",
+        // },
         {
           label: "HTTP Server",
           value: "http",

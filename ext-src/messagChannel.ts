@@ -15,7 +15,6 @@ export function setupMessageChannel(
 
   webviewView.webview.onDidReceiveMessage(async (message) => {
     console.log("Received message from webview:", message);
-
     switch (message.command) {
       case "loadChatSessions": {
         try {
@@ -168,6 +167,8 @@ export function setupMessageChannel(
           );
 
           // 开始流式聊天
+          const start = Date.now();
+
           (async () => {
             try {
               for await (const response of chatService.streamChat(messages)) {
@@ -185,6 +186,8 @@ export function setupMessageChannel(
                 }
 
                 if (response.isComplete) {
+                  const end = Date.now();
+                  console.log(`一轮回复时间采集 ${end - start}ms`);
                   if (!aborted) {
                     webviewView.webview.postMessage({
                       command: "streamComplete",
@@ -342,5 +345,9 @@ export function setupMessageChannel(
       default:
         break;
     }
+  });
+  webviewView.onDidDispose(() => {
+    console.log("Webview view disposed, cleaning up message channel.");
+    chatService?.dispose();
   });
 }

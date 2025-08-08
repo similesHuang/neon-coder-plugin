@@ -79,7 +79,6 @@ export class ChatService {
     }
   }
 
-  // 流式聊天 - 支持 Function Calling（基于参考代码重写）
   async *streamChat(
     messages: Message[],
     maxToolDepth: number = 5
