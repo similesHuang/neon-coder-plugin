@@ -38,6 +38,11 @@ export interface MCPTool {
   parameters: Record<string, any>;
   serverName?: string; // 添加服务器名称以便路由调用
 }
+export interface MCPPrompt {
+  role: "user" | "assistant";
+  type: "text";
+  content: string;
+}
 
 export interface Message {
   role: "user" | "assistant" | "system" | "tool";

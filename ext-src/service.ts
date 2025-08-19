@@ -234,7 +234,6 @@ export class ChatService {
           }
         }
 
-        // 如果有工具调用，处理它们（参考代码的关键逻辑）
         if (toolCalls.length > 0) {
           try {
             console.log(`检测到 ${toolCalls.length} 个工具调用`);
@@ -336,7 +335,6 @@ export class ChatService {
           parameters
         );
 
-        // 按照参考代码的格式返回结果
         toolResults.push(
           `工具 ${toolCall.function.name} 执行结果:\n${JSON.stringify(result)}`
         );
@@ -351,66 +349,6 @@ export class ChatService {
     }
 
     return toolResults.join("\n\n");
-  }
-
-  // 静默执行工具调用（不向用户显示执行过程）
-  private async executeToolCallsSilently(toolCalls: any[]): Promise<Message[]> {
-    const toolMessages: Message[] = [];
-
-    for (const toolCall of toolCalls) {
-      try {
-        console.log(`执行工具: ${toolCall.function.name}`);
-
-        // 解析工具参数（处理可能的空参数）
-        let parameters = {};
-        try {
-          if (
-            toolCall.function.arguments &&
-            toolCall.function.arguments.trim()
-          ) {
-            parameters = JSON.parse(toolCall.function.arguments);
-          } else {
-            console.log(`工具 ${toolCall.function.name} 没有参数，使用空对象`);
-            parameters = {};
-          }
-        } catch (parseError) {
-          console.error(
-            `解析工具参数失败: "${toolCall.function.arguments}"`,
-            parseError
-          );
-          parameters = {};
-        }
-
-        // 通过 ProviderManager 执行工具
-        const result = await this.providerManager.executeFunction(
-          toolCall.function.name,
-          parameters
-        );
-
-        toolMessages.push({
-          role: "tool",
-          content: JSON.stringify(result),
-          tool_call_id: toolCall.id,
-          timestamp: Date.now(),
-          id: "tool-" + toolCall.id + "-" + Date.now(),
-        });
-
-        console.log(`工具 ${toolCall.function.name} 执行成功`);
-      } catch (error) {
-        console.error(`工具执行失败 ${toolCall.function.name}:`, error);
-        toolMessages.push({
-          role: "tool",
-          content: `Error: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-          tool_call_id: toolCall.id,
-          timestamp: Date.now(),
-          id: "tool-error-" + toolCall.id + "-" + Date.now(),
-        });
-      }
-    }
-
-    return toolMessages;
   }
 
   // 获取当前配置

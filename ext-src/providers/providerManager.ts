@@ -2,7 +2,6 @@
 import * as vscode from "vscode";
 import { ContextProvider, ContextResult, MCPTool, Message } from "../types";
 import { FileContextProvider } from "./fileContextProvider";
-import { KnowledgeProvider } from "./knowledgeProvider";
 import { McpProvider } from "./mcpProvider";
 
 export class ProviderManager {
@@ -21,25 +20,13 @@ export class ProviderManager {
       const config = vscode.workspace.getConfiguration("neonChat");
       const enabledProviders = config.get<string[]>("enabledProviders", [
         "file",
-        "knowledge",
         "mcp",
       ]);
-      const mcpServers = config.get<string[]>("mcpServers", []);
-
-      console.log("Initializing providers:", enabledProviders);
-
       // 初始化文件上下文提供者
       if (enabledProviders.includes("file")) {
         const fileProvider = new FileContextProvider();
         await fileProvider.initialize();
         this.providers.push(fileProvider);
-      }
-
-      // 初始化知识库提供者
-      if (enabledProviders.includes("knowledge")) {
-        const knowledgeProvider = new KnowledgeProvider();
-        await knowledgeProvider.initialize();
-        this.providers.push(knowledgeProvider);
       }
 
       // 初始化MCP提供者

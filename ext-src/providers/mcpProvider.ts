@@ -4,7 +4,13 @@ import {
   streamableHttpConnectServer,
 } from "client-connect-server";
 import * as vscode from "vscode";
-import { ContextProvider, ContextResult, MCPTool, Message } from "../types";
+import {
+  ContextProvider,
+  ContextResult,
+  MCPPrompt,
+  MCPTool,
+  Message,
+} from "../types";
 
 interface MCPServerConfig {
   name: string;
@@ -19,6 +25,7 @@ interface MCPServerConnection {
   client: any;
   isConnected: boolean;
   tools: MCPTool[];
+  prompts: MCPPrompt[];
 }
 
 export class McpProvider implements ContextProvider {
@@ -109,6 +116,7 @@ export class McpProvider implements ContextProvider {
         client,
         isConnected: true,
         tools: [],
+        prompts: [],
       };
 
       // 获取服务器提供的工具列表
