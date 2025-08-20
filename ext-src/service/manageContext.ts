@@ -1,10 +1,10 @@
 // ext-src/providers/providerManager.ts
 import * as vscode from "vscode";
+import { FileContextProvider } from "../providers/fileContextProvider";
+import { McpProvider } from "../providers/mcpProvider";
 import { ContextProvider, ContextResult, MCPTool, Message } from "../types";
-import { FileContextProvider } from "./fileContextProvider";
-import { McpProvider } from "./mcpProvider";
 
-export class ProviderManager {
+export class ManageContext {
   private providers: ContextProvider[] = [];
   private initialized = false;
 

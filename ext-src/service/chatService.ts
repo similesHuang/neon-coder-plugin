@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import * as vscode from "vscode";
-import { ProviderManager } from "../providers/providerManager";
 import { Message } from "../types";
+import { ManageContext } from "./manageContext";
 
 export interface ChatConfig {
   model: string;
@@ -23,7 +23,7 @@ export class ChatService {
   private openai: OpenAI | null = null;
   private config: ChatConfig;
   private isInitialized = false;
-  private providerManager: ProviderManager;
+  private providerManager: ManageContext;
 
   constructor() {
     this.config = {
@@ -34,7 +34,7 @@ export class ChatService {
       temperature: 0.7,
       systemPrompt: "你是一个专业的AI编程助手，专门帮助用户解决编程问题。",
     };
-    this.providerManager = new ProviderManager();
+    this.providerManager = new ManageContext();
   }
 
   // 初始化服务
