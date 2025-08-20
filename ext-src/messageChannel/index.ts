@@ -1,8 +1,8 @@
 // ext-src/messagChannel.ts
 import * as vscode from "vscode";
-import { getCurrentFileInfo } from "./files";
-import { chatService } from "./service";
-import { ChatStorageManager } from "./store";
+import { chatService } from "../service/chatService";
+import { ChatStorageManager } from "../store/store";
+import { getCurrentFileInfo } from "../uitils/files";
 
 let storageManager: ChatStorageManager;
 

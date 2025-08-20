@@ -1,8 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
-import { getCurrentFileInfo } from "./files";
-import { setupMessageChannel } from "./messagChannel";
+import { setupMessageChannel } from "./messageChannel";
+import { getCurrentFileInfo } from "./uitils/files";
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log("Activating React Webview Extension...");

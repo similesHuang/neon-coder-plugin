@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import * as vscode from "vscode";
-import { ProviderManager } from "./providers/providerManager";
-import { Message } from "./types";
+import { ProviderManager } from "../providers/providerManager";
+import { Message } from "../types";
 
 export interface ChatConfig {
   model: string;
