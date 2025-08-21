@@ -43,7 +43,6 @@ export class ReactViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
-        console.log("🎯 Webview became visible, sending current file info");
         setTimeout(() => {
           this._fileWatcherManager.sendCurrentFileInfo();
         }, 200);

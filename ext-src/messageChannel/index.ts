@@ -1,24 +1,25 @@
 // ext-src/messagChannel.ts
 import * as vscode from "vscode";
 import { chatService } from "../service/chatService";
-import { ChatStorageManager } from "../store/store";
+import { ChatStoreManager } from "../store/chatStore";
+import { ConfigStoreManager } from "../store/configStore";
 import { getCurrentFileInfo } from "../uitils/files";
 
-let storageManager: ChatStorageManager;
-
+let chatStorageManager: ChatStoreManager;
+let configStroeManager: ConfigStoreManager;
 export function setupMessageChannel(
   webviewView: vscode.WebviewView,
   context: vscode.ExtensionContext
 ) {
-  storageManager = new ChatStorageManager(context);
+  chatStorageManager = new ChatStoreManager(context);
+  configStroeManager = new ConfigStoreManager(context);
   console.log("Setting up message channel...");
 
   webviewView.webview.onDidReceiveMessage(async (message) => {
-    console.log("Received message from webview:", message);
     switch (message.command) {
       case "loadChatSessions": {
         try {
-          const chatStore = await storageManager.getChatStore();
+          const chatStore = await chatStorageManager.getChatStore();
           webviewView.webview.postMessage({
             command: "chatSessionsLoaded",
             sessions: chatStore.sessions,
@@ -35,8 +36,8 @@ export function setupMessageChannel(
           const title = message.title || "新对话";
           console.log("Creating new session with title:", title);
 
-          const newSession = await storageManager.createNewSession(title);
-          await storageManager.setCurrentSessionId(newSession.id);
+          const newSession = await chatStorageManager.createNewSession(title);
+          await chatStorageManager.setCurrentSessionId(newSession.id);
 
           webviewView.webview.postMessage({
             command: "sessionCreated",
@@ -52,10 +53,12 @@ export function setupMessageChannel(
 
       case "switchSession": {
         try {
-          const session = await storageManager.switchSession(message.sessionId);
+          const session = await chatStorageManager.switchSession(
+            message.sessionId
+          );
 
           // 获取完整的会话状态
-          const chatStore = await storageManager.getChatStore();
+          const chatStore = await chatStorageManager.getChatStore();
 
           webviewView.webview.postMessage({
             command: "sessionSwitched",
@@ -70,10 +73,10 @@ export function setupMessageChannel(
 
       case "saveMessage": {
         try {
-          await storageManager.addMessage(message.message);
+          await chatStorageManager.addMessage(message.message);
 
           // 保存消息后，返回更新的当前会话信息
-          const currentSession = await storageManager.getCurrentSession();
+          const currentSession = await chatStorageManager.getCurrentSession();
           webviewView.webview.postMessage({
             command: "messageSaved",
             success: true,
@@ -92,8 +95,8 @@ export function setupMessageChannel(
 
       case "deleteSession": {
         try {
-          await storageManager.deleteSession(message.sessionId);
-          const chatStore = await storageManager.getChatStore();
+          await chatStorageManager.deleteSession(message.sessionId);
+          const chatStore = await chatStorageManager.getChatStore();
           webviewView.webview.postMessage({
             command: "sessionDeleted",
             sessions: chatStore.sessions,
@@ -108,8 +111,8 @@ export function setupMessageChannel(
 
       case "syncState": {
         try {
-          const chatStore = await storageManager.getChatStore();
-          const currentSession = await storageManager.getCurrentSession();
+          const chatStore = await chatStorageManager.getChatStore();
+          const currentSession = await chatStorageManager.getCurrentSession();
 
           webviewView.webview.postMessage({
             command: "stateSync",
@@ -124,7 +127,7 @@ export function setupMessageChannel(
 
       case "getCurrentSession": {
         try {
-          const currentSession = await storageManager.getCurrentSession();
+          const currentSession = await chatStorageManager.getCurrentSession();
           webviewView.webview.postMessage({
             command: "currentSessionLoaded",
             session: currentSession,
@@ -140,7 +143,7 @@ export function setupMessageChannel(
           const { messages, requestId } = message;
 
           // 获取配置并初始化chatService
-          const config = await storageManager.getAppConfig();
+          const config = await configStroeManager.getAppConfig();
           await chatService.initialize({
             apiKey: config.apiKey,
             model: config.currentModel || "claude-4-sonnet",
@@ -251,7 +254,7 @@ export function setupMessageChannel(
       // 获取配置
       case "getConfig": {
         try {
-          const config = await storageManager.getAppConfig();
+          const config = await configStroeManager.getAppConfig();
           webviewView.webview.postMessage({
             command: "configLoaded",
             config,
@@ -269,7 +272,7 @@ export function setupMessageChannel(
       // 保存配置
       case "saveConfig": {
         try {
-          await storageManager.saveAppConfig(message.config);
+          await configStroeManager.saveAppConfig(message.config);
           webviewView.webview.postMessage({
             command: "configSaved",
             success: true,
@@ -288,8 +291,8 @@ export function setupMessageChannel(
       // 更新当前模型
       case "setCurrentModel": {
         try {
-          await storageManager.setCurrentModel(message.model);
-          const config = await storageManager.getAppConfig();
+          await configStroeManager.setCurrentModel(message.model);
+          const config = await configStroeManager.getAppConfig();
           webviewView.webview.postMessage({
             command: "configLoaded",
             config,
@@ -307,8 +310,8 @@ export function setupMessageChannel(
       // 更新API Key
       case "setApiKey": {
         try {
-          await storageManager.setApiKey(message.apiKey);
-          const config = await storageManager.getAppConfig();
+          await configStroeManager.setApiKey(message.apiKey);
+          const config = await configStroeManager.getAppConfig();
           webviewView.webview.postMessage({
             command: "configLoaded",
             config,
@@ -326,8 +329,8 @@ export function setupMessageChannel(
       // 从命令设置API Key
       case "setApiKeyFromCommand": {
         try {
-          await storageManager.setApiKey(message.apiKey);
-          const config = await storageManager.getAppConfig();
+          await configStroeManager.setApiKey(message.apiKey);
+          const config = await configStroeManager.getAppConfig();
           webviewView.webview.postMessage({
             command: "configLoaded",
             config,

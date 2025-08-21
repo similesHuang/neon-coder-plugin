@@ -18,6 +18,7 @@ export class ManageContext {
     try {
       // 从配置中读取启用的提供者
       const config = vscode.workspace.getConfiguration("neonChat");
+      console.log("config", config);
       const enabledProviders = config.get<string[]>("enabledProviders", [
         "file",
         "mcp",

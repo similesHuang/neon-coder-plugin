@@ -20,41 +20,13 @@ export interface ChatStore {
   currentSessionId?: string;
 }
 
-// 新增：配置相关接口
-export interface ModelConfig {
-  model: "gpt-4o" | "claude-4-sonnet";
-  apiKey: string;
-}
-
-export interface AppConfig {
-  currentModel: ModelConfig["model"];
-  apiKey: string; // 统一的API Key
-}
-
-export const MODEL_CONFIGS = {
-  "gpt-4o": {
-    name: "GPT-4o",
-  },
-  "claude-4-sonnet": {
-    name: "Claude 4 Sonnet",
-  },
-} as const;
-
-export const DEFAULT_CONFIG: AppConfig = {
-  currentModel: "claude-4-sonnet",
-  apiKey: "",
-};
-
-export class ChatStorageManager {
+export class ChatStoreManager {
   private context: vscode.ExtensionContext;
   private readonly STORAGE_KEY = "neon-coder-chat-data";
-  private readonly CONFIG_KEY = "neon-coder-config";
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
   }
-
-  // ========== 聊天数据存储方法 ==========
 
   async getChatStore(): Promise<ChatStore> {
     const stored = await this.context.globalState.get<ChatStore>(
@@ -78,7 +50,6 @@ export class ChatStorageManager {
     };
 
     chatStore.sessions.unshift(newSession);
-
     chatStore.currentSessionId = newSession.id;
 
     await this.saveChatStore(chatStore);
@@ -121,7 +92,6 @@ export class ChatStorageManager {
     );
   }
 
-  // 添加消息到当前会话
   async addMessage(message: ChatMessage): Promise<void> {
     const chatStore = await this.getChatStore();
     let currentSession = await this.getCurrentSession();
@@ -133,6 +103,7 @@ export class ChatStorageManager {
     currentSession.messages.push(message);
     currentSession.updatedAt = Date.now();
 
+    // 自动设置会话标题（使用第一条用户消息）
     if (currentSession.messages.length === 1 && message.role === "user") {
       currentSession.title = message.content.slice(0, 60) + "...";
     }
@@ -140,7 +111,6 @@ export class ChatStorageManager {
     await this.saveChatStore(chatStore);
   }
 
-  // 切换会话
   async switchSession(sessionId: string): Promise<ChatSession | null> {
     const chatStore = await this.getChatStore();
     const session = chatStore.sessions.find((s) => s.id === sessionId);
@@ -155,6 +125,7 @@ export class ChatStorageManager {
     const chatStore = await this.getChatStore();
     chatStore.sessions = chatStore.sessions.filter((s) => s.id !== sessionId);
 
+    // 如果删除的是当前会话，切换到第一个可用会话
     if (chatStore.currentSessionId === sessionId) {
       chatStore.currentSessionId = chatStore.sessions[0]?.id;
     }
@@ -186,73 +157,51 @@ export class ChatStorageManager {
     return chatStore.sessions.find((s) => s.id === sessionId) || null;
   }
 
-  // ========== 配置存储方法 ==========
-
-  async getAppConfig(): Promise<AppConfig> {
-    const stored = await this.context.globalState.get<AppConfig>(
-      this.CONFIG_KEY
-    );
-    console.log("Loaded app config:", stored);
-    return stored || DEFAULT_CONFIG;
-  }
-
-  async saveAppConfig(config: AppConfig): Promise<void> {
-    await this.context.globalState.update(this.CONFIG_KEY, config);
-    console.log("✅ App config saved to persistent storage");
+  async getAllSessions(): Promise<ChatSession[]> {
+    const chatStore = await this.getChatStore();
+    return chatStore.sessions;
   }
 
   /**
-   * 更新当前使用的模型
+   * 更新会话中的特定消息
    */
-  async setCurrentModel(model: ModelConfig["model"]): Promise<void> {
-    const config = await this.getAppConfig();
-    config.currentModel = model;
-    await this.saveAppConfig(config);
-    console.log(`✅ Current model updated to: ${model}`);
-  }
+  async updateMessage(
+    sessionId: string,
+    messageId: string,
+    content: string
+  ): Promise<void> {
+    const chatStore = await this.getChatStore();
+    const session = chatStore.sessions.find((s) => s.id === sessionId);
 
-  /**
-   * 更新API Key
-   */
-  async setApiKey(apiKey: string): Promise<void> {
-    const config = await this.getAppConfig();
-    config.apiKey = apiKey;
-    await this.saveAppConfig(config);
-    console.log(`✅ API Key updated`);
-  }
-
-  /**
-   * 获取当前模型配置
-   */
-  async getCurrentModelConfig(): Promise<ModelConfig | null> {
-    const config = await this.getAppConfig();
-
-    if (!config.apiKey) {
-      return null;
+    if (!session) {
+      throw new Error(`Session with ID ${sessionId} does not exist`);
     }
 
-    const modelInfo = MODEL_CONFIGS[config.currentModel];
-    return {
-      model: config.currentModel,
-      apiKey: config.apiKey,
-    };
+    const message = session.messages.find((m) => m.id === messageId);
+    if (!message) {
+      throw new Error(`Message with ID ${messageId} does not exist`);
+    }
+
+    message.content = content;
+    session.updatedAt = Date.now();
+
+    await this.saveChatStore(chatStore);
   }
 
   /**
-   * 重置配置到默认值
+   * 删除会话中的特定消息
    */
-  async resetAppConfig(): Promise<void> {
-    await this.saveAppConfig(DEFAULT_CONFIG);
-    console.log("✅ App config reset to default values");
-  }
+  async deleteMessage(sessionId: string, messageId: string): Promise<void> {
+    const chatStore = await this.getChatStore();
+    const session = chatStore.sessions.find((s) => s.id === sessionId);
 
-  /**
-   * 清除API Key配置
-   */
-  async clearApiKey(): Promise<void> {
-    const config = await this.getAppConfig();
-    config.apiKey = "";
-    await this.saveAppConfig(config);
-    console.log(`✅ API Key cleared`);
+    if (!session) {
+      throw new Error(`Session with ID ${sessionId} does not exist`);
+    }
+
+    session.messages = session.messages.filter((m) => m.id !== messageId);
+    session.updatedAt = Date.now();
+
+    await this.saveChatStore(chatStore);
   }
 }
